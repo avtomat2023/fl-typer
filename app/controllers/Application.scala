@@ -10,11 +10,11 @@ import parsing.FLParser
 class Application extends Controller {
   val form = Form("expression" -> Forms.text)
 
-  def index = Action { implicit request =>
-    Ok(views.html.main(request))
+  def index = Action {
+    Ok(views.html.main())
   }
 
-  def typing = Action { implicit req =>
+  def typing = Action { implicit request =>
     val expr = form.bindFromRequest.get
     val result = FLParser.parse(expr)
     if (result.successful)

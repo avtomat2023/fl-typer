@@ -1,6 +1,6 @@
 jQuery(function($) {
     var canvasFont = "30px Times New Roman";
-    var textHeight = 30;
+    var textHeight = 38;
 
     var astCanvas = document.getElementById("ast-canvas");
     var astCtx = astCanvas.getContext("2d");
