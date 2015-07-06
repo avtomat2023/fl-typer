@@ -66,8 +66,21 @@ object Implicits {
 
 object FLParser extends RegexParsers {
   def const: Parser[Ast] = """[0-9]+|true|false""".r ^^ { Const(_) }
-  def variable: Parser[Var] =
-    not(reserved)~>"""[a-zA-Z][a-zA-Z0-9_]*""".r ^^ { Var(_) }
+  val reserved = Set("true", "false", "nil", "if", "then", "else",
+                     "let", "in", "case", "of")
+  def variable: Parser[Var] = new Parser[Var] {
+    def apply(in: Input) = {
+      regex("""[a-zA-Z][a-zA-Z0-9_]*""".r)(in) match {
+        case Success(varName, next) =>
+          if (reserved(varName))
+            new Failure("variable expected but reserved word `" +
+                        varName + "' found", in)
+          else
+            Success(Var(varName), next)
+        case NoSuccess(msg, next) => Failure(msg, next)
+      }
+    }
+  }
   def nil: Parser[Nil.type] = "nil" ^^ { _ => Nil }
   def abs: Parser[Abs] = "\\"~>variable~"."~expr ^^ {
     case variable~sep~body => Abs(variable, body)
@@ -86,7 +99,6 @@ object FLParser extends RegexParsers {
         Case(e, nilE, v1, v2, consE)
       }
 
-  def reserved: Parser[String] = """nil|if|then|else|let|in|case|of""".r
   def nonrecExpr: Parser[Ast] =
     const | variable | nil | abs | ifExpr | let | caseExpr
 
