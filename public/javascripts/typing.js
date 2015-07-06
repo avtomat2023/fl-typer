@@ -95,7 +95,7 @@ jQuery(function($) {
         // xは中央、yは上端
         var draw = function(obj, x, y) {
             if (obj.kind == "text") {
-                astCtx.fillText(obj.text, x, y);
+                astCtx.fillText(obj.text, Math.round(x), Math.round(y));
             } else {
                 draw(obj.head, x, y);
                 var botOfHead = y + obj.head.height;
@@ -104,8 +104,9 @@ jQuery(function($) {
                     var node = obj.children[i];
                     var nextX = x + node.relativeX + node.tree.width/2;
                     draw(node.tree, nextX, nextY);
-                    astCtx.moveTo(x, botOfHead);
-                    astCtx.lineTo(nextX, nextY);
+                    astCtx.moveTo(Math.round(x), Math.round(botOfHead));
+                    astCtx.lineTo(Math.round(nextX), Math.round(nextY));
+                    astCtx.lineWidth = 1;
                     astCtx.stroke();
                 }
             }
