@@ -15,6 +15,12 @@ class ParsingTest extends FunSuite {
     }
   }
 
+  test("lambda shorthand notation") {
+    assertResult(Abs("x", Abs("y", Abs("z", "x")))) {
+      FLParser.parse("\\x.y.z.x").get
+    }
+  }
+
   test("case expression") {
     assertResult(Case(Cons(1,Nil), 0, "hd", "tl", "hd")) {
       FLParser.parse("case 1::nil of nil -> 0 | hd::tl -> hd").get
