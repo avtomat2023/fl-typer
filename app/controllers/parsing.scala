@@ -137,8 +137,8 @@ object FLParser extends RegexParsers {
   def variable: Parser[Var] = wordWith(!reservedWords(_)) ^^ { Var(_) }
 
   def nil: Parser[Nil.type] = "nil" ^^ { _ => Nil }
-  def abs: Parser[Ast] = """\\|λ""".r~>rep1(variable<~".")~expr ^^ {
-    case vs~body => vs.foldRight(body)(Abs(_,_))
+  def abs: Parser[Abs] = """\\|λ""".r~>rep1(variable<~".")~expr ^^ {
+    case vs~body => vs.init.foldRight(Abs(vs.last,body))(Abs(_,_))
   }
   def ifExpr: Parser[If] = "if"~>expr~"then"~expr~"else"~expr ^^ {
     case cond~_~thenExpr~_~elseExpr => If(cond, thenExpr, elseExpr)
