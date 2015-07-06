@@ -14,7 +14,7 @@ case class Const(value: String) extends Ast {
 case class Var(name: String) extends Ast {
   def toJsValue = JsString(name)
 }
-case class Nil() extends Ast {
+case object Nil extends Ast {
   def toJsValue = JsString("nil")
 }
 case class Cons(car: Ast, cdr: Ast) extends Ast {
@@ -49,11 +49,26 @@ case class Case(caseExpr: Ast, nilExpr: Ast,
   }
 }
 
+object Implicits {
+  import scala.language.implicitConversions
+  import scala.collection.immutable
+
+  implicit def intToConst(x: Int): Const = Const(x.toString)
+  implicit def boolToConst(x: Boolean): Const = Const(x.toString)
+  implicit def strToVar(x: String): Var = Var(x)
+  implicit def listToAst(x: List[Ast]): Ast = x match {
+    case immutable.Nil => Nil
+    case hd::tl => Cons(hd, tl)
+  }
+  implicit def consToCons(x: immutable.::[Ast]): Cons = Cons(x.head, x.tail)
+  implicit def nilToNil(x: immutable.Nil.type): Nil.type = Nil
+}
+
 object FLParser extends RegexParsers {
   def const: Parser[Ast] = """[0-9]+|true|false""".r ^^ { Const(_) }
   def variable: Parser[Var] =
     not(reserved)~>"""[a-zA-Z][a-zA-Z0-9_]*""".r ^^ { Var(_) }
-  def nil: Parser[Nil] = "nil" ^^ { _ => Nil() }
+  def nil: Parser[Nil.type] = "nil" ^^ { _ => Nil }
   def abs: Parser[Abs] = "\\"~>variable~"."~expr ^^ {
     case variable~sep~body => Abs(variable, body)
   }
