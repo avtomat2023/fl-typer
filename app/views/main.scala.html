@@ -4,14 +4,23 @@
     <head>
         <meta charset="UTF-8">
         <title>FL Typer</title>
+        <!-- stylesheet: https://bootswatch.com/cerulean/ -->
+        <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/bootstrap.min.css")">
         <script src="https://code.jquery.com/jquery-2.0.2.min.js"></script>
-        <script src="@routes.Assets.versioned("javascripts/typing.js")" type="text/javascript"></script>
+        <script src="@routes.Assets.versioned("javascripts/typing.js")"></script>
+        <style>
+            input{ font-family: monospace; }
+        </style>
     </head>
 
     <body>
         <form id="expression-form" action="/typing" method="POST">
-            <input type="text" name="expression"/>
-            <button>Type It!</button>
+            <div class="input-group">
+                <input name="expression" type="text" class="form-control">
+                <span class="input-group-btn">
+                    <button class="btn btn-primary" type="submit">Type It!</button>
+                </span>
+            </div>
         </form>
 
         <hr>
