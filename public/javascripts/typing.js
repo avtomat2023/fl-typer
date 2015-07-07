@@ -80,7 +80,6 @@ jQuery(function($) {
             }
         }
         var drawableTree = transform2(sizedTexts);
-        console.log(drawableTree);
 
         // キャンバスのサイズをセット
         var canvasMargin = 10;
@@ -113,6 +112,25 @@ jQuery(function($) {
         }
         draw(drawableTree, canvasMargin + drawableTree.width/2, canvasMargin);
     }
+
+    $('#expression').keydown(function(event) {
+        if (event.keyCode == 220) { // 220 = backslash
+            event.preventDefault();
+            var caret = $(this).caret();
+            var s = $(this).val();
+            $(this).val(s.slice(0, caret) + "λ" + s.slice(caret));
+            $(this).caret(caret+1);
+        }
+    });
+
+    var samplePrograms = {
+        'fst': 'λx.y.x',
+        'snd': 'λx.y.y',
+        'List Constraction': '1::2::3::4::nil'
+    }
+    $('.sample-menu').click(function() {
+        $('#expression').val(samplePrograms[$(this).html()]);
+    });
 
     // http://ginpen.com/2013/05/07/jquery-ajax-form/
     $('#expression-form').submit(function(event) {

@@ -1,56 +1,71 @@
 <!DOCTYPE html>
 
 <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>FL Typer</title>
-        <!-- stylesheet: https://bootswatch.com/cerulean/ -->
-        <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/bootstrap.min.css")">
-        <script src="https://code.jquery.com/jquery-2.0.2.min.js"></script>
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-        <script src="@routes.Assets.versioned("javascripts/typing.js")"></script>
-        <style>
-         input { font-family: monospace; }
-         #expression-input-group { max-width: 500px; }
-         /* http://jsfiddle.net/Wc4xt/1052/ */
-         .panel-heading a:after {
-             font-family:'Glyphicons Halflings';
-             content:"\e114";
-             float: left;
-             color: grey;
-         }
-         .panel-heading a.collapsed:after {
-             content:"\e080";
-         }
-        </style>
-    </head>
+  <head>
+    <meta charset="UTF-8">
+    <title>FL Typer</title>
+    <!-- stylesheet: https://bootswatch.com/cerulean/ -->
+    <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/bootstrap.min.css")">
+    <script src="https://code.jquery.com/jquery-2.0.2.min.js"></script>
+    <script src="@routes.Assets.versioned("javascripts/jquery.caret-1.5.2.min.js")"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script src="@routes.Assets.versioned("javascripts/typing.js")"></script>
+    <style>
+     input { font-family: monospace; }
+     #expression-input-group { max-width: 600px; }
+     /* http://jsfiddle.net/Wc4xt/1052/ */
+     .panel-heading a:after {
+         font-family:'Glyphicons Halflings';
+         content:"\e114";
+         float: left;
+         color: grey;
+     }
+     .panel-heading a.collapsed:after {
+         content:"\e080";
+     }
+    </style>
+  </head>
 
-    <body>
-        <h1>FL Typer</h1>
+  <body>
+    <h1>FL Typer</h1>
+    Backslashes and yen marks are treated as lambdas.
 
-        <form id="expression-form" action="/typing" method="POST">
-            <div class="input-group" id="expression-input-group">
-                <input name="expression" type="text" class="form-control" autofocus>
-                <span class="input-group-btn">
-                    <button class="btn btn-primary" type="submit">Type It!</button>
-                </span>
-            </div>
-        </form>
+    <form class="form-horizontal" id="expression-form" action="/typing" method="POST">
+      <div class="input-group" id="expression-input-group">
+        <input id="expression" name="expression" type="text" class="form-control" autofocus>
+        <span class="input-group-btn">
+          <button class="btn btn-primary" type="submit">Type It!</button>
+        </span>
+        <span class="input-group-btn">
+          <div class="dropdown">
+            <button class="btn btn-default dropdown-toggle" type="button" id="sample-program-button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              Sample Programs
+              <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="sample-program-button">
+              <li><a class="sample-menu" href="javascript:void(0)">fst</a></li>
+              <li><a class="sample-menu" href="javascript:void(0)">snd</a></li>
+              <li><a class="sample-menu" href="javascript:void(0)">List Constraction</a></li>
+            </ul>
+          </div>
+        </span>
+      </div>
+    </form>
 
-        <!-- http://jsfiddle.net/Wc4xt/1052/ -->
-        <div class="panel-group">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h4 class="panel-title">
-                        <a data-toggle="collapse" data-target="#collapseOne" href="#collapseOne">
-                            Abstract Syntax Tree
-                        </a>
-                    </h4>
-                </div>
-                <div id="collapseOne" class="panel-collapse collapse in">
-                    <canvas id="ast-canvas" width="0" height="0"></canvas>
-                </div>
-            </div>
+    <!-- http://jsfiddle.net/Wc4xt/1052/ -->
+    <div class="panel-group">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            <a data-toggle="collapse" data-target="#collapseOne" href="javascript:void(0)">
+              Abstract Syntax Tree
+            </a>
+          </h4>
         </div>
-    </body>
+        <div id="collapseOne" class="panel-collapse collapse in">
+          <canvas id="ast-canvas" width="0" height="0"></canvas>
+        </div>
+      </div>
+    </div>
+  </body>
 </html>
