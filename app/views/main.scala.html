@@ -7,25 +7,50 @@
         <!-- stylesheet: https://bootswatch.com/cerulean/ -->
         <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/bootstrap.min.css")">
         <script src="https://code.jquery.com/jquery-2.0.2.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
         <script src="@routes.Assets.versioned("javascripts/typing.js")"></script>
         <style>
-            input{ font-family: monospace; }
+         input { font-family: monospace; }
+         #expression-input-group { max-width: 500px; }
+         /* http://jsfiddle.net/Wc4xt/1052/ */
+         .panel-heading a:after {
+             font-family:'Glyphicons Halflings';
+             content:"\e114";
+             float: left;
+             color: grey;
+         }
+         .panel-heading a.collapsed:after {
+             content:"\e080";
+         }
         </style>
     </head>
 
     <body>
+        <h1>FL Typer</h1>
+
         <form id="expression-form" action="/typing" method="POST">
-            <div class="input-group">
-                <input name="expression" type="text" class="form-control">
+            <div class="input-group" id="expression-input-group">
+                <input name="expression" type="text" class="form-control" autofocus>
                 <span class="input-group-btn">
                     <button class="btn btn-primary" type="submit">Type It!</button>
                 </span>
             </div>
         </form>
 
-        <hr>
-        Abstract Syntax Tree:<br>
-
-        <canvas id="ast-canvas" width="300" height="300"></canvas>
+        <!-- http://jsfiddle.net/Wc4xt/1052/ -->
+        <div class="panel-group">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 class="panel-title">
+                        <a data-toggle="collapse" data-target="#collapseOne" href="#collapseOne">
+                            Abstract Syntax Tree
+                        </a>
+                    </h4>
+                </div>
+                <div id="collapseOne" class="panel-collapse collapse in">
+                    <canvas id="ast-canvas" width="0" height="0"></canvas>
+                </div>
+            </div>
+        </div>
     </body>
 </html>
