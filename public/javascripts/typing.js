@@ -113,8 +113,10 @@ jQuery(function($) {
         draw(drawableTree, canvasMargin + drawableTree.width/2, canvasMargin);
     }
 
-    $('#expression').keydown(function(event) {
-        if (event.keyCode == 220) { // 220 = backslash
+    $('#expression').keypress(function(event) {
+        var backslash = '\\'.charCodeAt(0);
+        var yen = '¥'.charCodeAt(0);
+        if (event.keyCode == backslash || event.keyCode == yen) {
             event.preventDefault();
             var caret = $(this).caret();
             var s = $(this).val();
