@@ -49,21 +49,6 @@ case class Case(caseExpr: Ast, nilExpr: Ast,
   }
 }
 
-object Implicits {
-  import scala.language.implicitConversions
-  import scala.collection.immutable
-
-  implicit def intToConst(x: Int): Const = Const(x.toString)
-  implicit def boolToConst(x: Boolean): Const = Const(x.toString)
-  implicit def strToVar(x: String): Var = Var(x)
-  implicit def listToAst(x: List[Ast]): Ast = x match {
-    case immutable.Nil => Nil
-    case hd::tl => Cons(hd, tl)
-  }
-  implicit def consToCons(x: immutable.::[Ast]): Cons = Cons(x.head, x.tail)
-  implicit def nilToNil(x: immutable.Nil.type): Nil.type = Nil
-}
-
 object Const {
   val add = Const("+")
   val sub = Const("-")
@@ -81,6 +66,21 @@ object Const {
   val gt = Const(">")
 }
 
+object Implicits {
+  import scala.language.implicitConversions
+  import scala.collection.immutable
+
+  implicit def intToConst(x: Int): Const = Const(x.toString)
+  implicit def boolToConst(x: Boolean): Const = Const(x.toString)
+  implicit def strToVar(x: String): Var = Var(x)
+  implicit def listToAst(x: List[Ast]): Ast = x match {
+    case immutable.Nil => Nil
+    case hd::tl => Cons(hd, tl)
+  }
+  implicit def consToCons(x: immutable.::[Ast]): Cons = Cons(x.head, x.tail)
+  implicit def nilToNil(x: immutable.Nil.type): Nil.type = Nil
+}
+
 object FLParser extends RegexParsers {
   // 入力文字列全体を一つの式だと思ってパース
   def parse(input: String) = parseAll(expr, input)
@@ -90,7 +90,9 @@ object FLParser extends RegexParsers {
     results.reduceRight(Cons(_,_))
   }
 
-  def binOpExpr(operator: Parser[String], nextLevel: Parser[Ast]): Parser[Ast] =
+  // 左結合の二項演算子を使った式をパース
+  def leftBinOpExpr(operator: Parser[String],
+                    nextLevel: Parser[Ast]): Parser[Ast] =
     nextLevel~rep(operator~nextLevel) ^^ { case first~rest =>
       rest.foldLeft(first){ (tree, node) =>
         node match {
@@ -122,11 +124,11 @@ object FLParser extends RegexParsers {
   // 与えられた文字列群のどれか一つに一致するword
   def word(expecteds: String*): Parser[String] = wordWith(expecteds.contains(_))
 
-  def orExpr: Parser[Ast] = binOpExpr(word("or"), andExpr)
-  def andExpr: Parser[Ast] = binOpExpr(word("and"), comparisonExpr)
-  def comparisonExpr: Parser[Ast] = binOpExpr("<=|<|=|>=|>".r, addsubExpr)
-  def addsubExpr: Parser[Ast] = binOpExpr("""\+|-""".r, muldivExpr)
-  def muldivExpr: Parser[Ast] = binOpExpr("""\*|/""".r, prefixExpr)
+  def orExpr: Parser[Ast] = leftBinOpExpr(word("or"), andExpr)
+  def andExpr: Parser[Ast] = leftBinOpExpr(word("and"), comparisonExpr)
+  def comparisonExpr: Parser[Ast] = leftBinOpExpr("<=|<|=|>=|>".r, addsubExpr)
+  def addsubExpr: Parser[Ast] = leftBinOpExpr("""\+|-""".r, muldivExpr)
+  def muldivExpr: Parser[Ast] = leftBinOpExpr("""\*|/""".r, prefixExpr)
 
   def prefixExpr: Parser[Ast] = {
     val op = "+" | "-" | word("not")
