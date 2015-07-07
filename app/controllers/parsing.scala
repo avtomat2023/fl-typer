@@ -64,6 +64,23 @@ object Implicits {
   implicit def nilToNil(x: immutable.Nil.type): Nil.type = Nil
 }
 
+object Const {
+  val add = Const("+")
+  val sub = Const("-")
+  val mul = Const("*")
+  val div = Const("/")
+  val uminus = Const("-")
+  val uplus = Const("+")
+  val and = Const("and")
+  val or = Const("or")
+  val not = Const("not")
+  val lt = Const("<")
+  val le = Const("<=")
+  val intEq = Const("=")
+  val ge = Const(">=")
+  val gt = Const(">")
+}
+
 object FLParser extends RegexParsers {
   // 入力文字列全体を一つの式だと思ってパース
   def parse(input: String) = parseAll(expr, input)
@@ -132,13 +149,13 @@ object FLParser extends RegexParsers {
   def const: Parser[Ast] =
     ("""[0-9]+""".r | word("true", "false")) ^^ { Const(_) }
 
-  val reservedWords = Set("true", "false", "and", "or", "nil",
+  val reservedWords = Set("true", "false", "and", "or", "not", "nil",
                           "if", "then", "else", "let", "in", "case", "of")
   def variable: Parser[Var] = wordWith(!reservedWords(_)) ^^ { Var(_) }
 
   def nil: Parser[Nil.type] = "nil" ^^ { _ => Nil }
   def abs: Parser[Abs] = """\\|λ""".r~>rep1(variable<~".")~expr ^^ {
-    case vs~body => vs.init.foldRight(Abs(vs.last,body))(Abs(_,_))
+    case vs~body => vs.init.foldRight(Abs(vs.last, body)){ Abs(_,_) }
   }
   def ifExpr: Parser[If] = "if"~>expr~"then"~expr~"else"~expr ^^ {
     case cond~_~thenExpr~_~elseExpr => If(cond, thenExpr, elseExpr)
@@ -147,9 +164,9 @@ object FLParser extends RegexParsers {
     case variable~_~binding~_~body => Let(variable, binding, body)
   }
   def caseExpr: Parser[Case] =
-    "case"~>expr~"of" ~ opt("|")~"nil"~"->"~expr~
+    "case"~>expr~"of" ~ opt("|")~"nil"~"->"~expr ~
     "|"~variable~"::"~variable~"->"~expr ^^ {
       case e~_~_~_~_~nilE~_~v1~_~v2~_~consE =>
-      Case(e, nilE, v1, v2, consE)
+        Case(e, nilE, v1, v2, consE)
     }
 }
