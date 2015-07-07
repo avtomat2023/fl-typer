@@ -75,9 +75,10 @@ object Implicits {
   implicit def strToVar(x: String): Var = Var(x)
   implicit def listToAst(x: List[Ast]): Ast = x match {
     case immutable.Nil => Nil
-    case hd::tl => Cons(hd, tl)
+    case hd::tl => Cons(hd, listToAst(tl))
   }
-  implicit def consToCons(x: immutable.::[Ast]): Cons = Cons(x.head, x.tail)
+  implicit def consToCons(x: immutable.::[Ast]): Cons =
+    Cons(x.head, listToAst(x.tail))
   implicit def nilToNil(x: immutable.Nil.type): Nil.type = Nil
 }
 
@@ -107,7 +108,7 @@ object FLParser extends RegexParsers {
   // wordが見つかったがpredを満たさない場合、err(word)がエラーメッセージとなる
   def wordWith(pred: String => Boolean, err: String => String): Parser[String] =
     new Parser[String] {
-      def apply(in: Input) = {
+      def apply(in: Input) =
         word(in) match {
           case Success(w, next) =>
             if (pred(w))
@@ -116,7 +117,6 @@ object FLParser extends RegexParsers {
               Failure(err(w), in)
           case NoSuccess(msg, next) => Failure(msg, next)
         }
-      }
     }
   // errを省略したwordWith
   def wordWith(pred: String => Boolean): Parser[String] =
@@ -130,19 +130,14 @@ object FLParser extends RegexParsers {
   def addsubExpr: Parser[Ast] = leftBinOpExpr("""\+|-""".r, muldivExpr)
   def muldivExpr: Parser[Ast] = leftBinOpExpr("""\*|/""".r, prefixExpr)
 
-  def prefixExpr: Parser[Ast] = {
-    val op = "+" | "-" | word("not")
-    opt(op)~appExpr ^^ {
+  def prefixExpr: Parser[Ast] = opt("+" | "-" | word("not")) ~ appExpr ^^ {
       case prefix~expr => prefix match {
         case Some(op) => App(Const(op), expr)
         case None => expr
       }
     }
-  }
 
-  def appExpr: Parser[Ast] = rep1(parenExpr) ^^ { results =>
-    results.reduceLeft(App(_,_))
-  }
+  def appExpr: Parser[Ast] = rep1(parenExpr) ^^ { _.reduceLeft(App(_,_)) }
   def parenExpr: Parser[Ast] = nonLeftRecursiveExpr | "("~>expr<~")"
 
   def nonLeftRecursiveExpr: Parser[Ast] =
@@ -168,7 +163,7 @@ object FLParser extends RegexParsers {
   def caseExpr: Parser[Case] =
     "case"~>expr~"of" ~ opt("|")~"nil"~"->"~expr ~
     "|"~variable~"::"~variable~"->"~expr ^^ {
-      case e~_~_~_~_~nilE~_~v1~_~v2~_~consE =>
-        Case(e, nilE, v1, v2, consE)
+      case e~_~_~_~_~nilExpr~_~v1~_~v2~_~consExpr =>
+        Case(e, nilExpr, v1, v2, consExpr)
     }
 }
