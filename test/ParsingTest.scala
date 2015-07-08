@@ -1,10 +1,12 @@
-import parsing._
+import parsing.FLParser
 
 import org.scalatest.FunSuite
 
 class ParsingTest extends FunSuite {
-  import parsing.Implicits._
-  import parsing.Const._
+
+  import ast._
+  import ast.Implicits._
+  import ast.Const._
 
   test("'true'") {
     assertResult(Const("true")) { FLParser.parse("true").get }
