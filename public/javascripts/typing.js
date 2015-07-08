@@ -127,9 +127,14 @@ jQuery(function($) {
     $('body').append('<svg id="dummy-svg" xmlns="' + svgNS + '" version="1.1" display="none">');
 
     $('#expression').keypress(function(event) {
+        var enter = 13;
         var backslash = '\\'.charCodeAt(0);
         var yen = '¥'.charCodeAt(0);
-        if (event.keyCode == backslash || event.keyCode == yen) {
+
+        var code = event.keyCode;
+        if (code == enter) {
+            $('#type-button').click();
+        } else if (code == backslash || code == yen) {
             event.preventDefault();
             var caret = $(this).caret();
             var s = $(this).val();
@@ -148,34 +153,22 @@ jQuery(function($) {
     });
 
     // http://ginpen.com/2013/05/07/jquery-ajax-form/
-    $('#expression-form').submit(function(event) {
-        // HTMLでの送信をキャンセル
-        event.preventDefault();
-
-        // 操作対象のフォーム要素を取得
-        var $form = $(this);
-
-        // 送信ボタンを取得
-        // （後で使う: 二重送信を防止する。）
-        var $button = $form.find('button');
-
-        // 送信
+    $('#type-button').click(function(event) {
         $.ajax({
-            url: $form.attr('action'),
-            type: $form.attr('method'),
-            data: $form.serialize(),
-            timeout: 10000,  // 単位はミリ秒
+            url: '/typing',
+            data: { expression: $('#expression').val() },
+            timeout: 10000,
             dataType: 'json',
 
             // 送信前
             beforeSend: function(xhr, settings) {
                 // ボタンを無効化し、二重送信を防止
-                $button.attr('disabled', true);
+                $(this).attr('disabled', true);
             },
             // 応答後
             complete: function(xhr, textStatus) {
                 // ボタンを有効化し、再送信を許可
-                $button.attr('disabled', false);
+                $(this).attr('disabled', false);
             },
 
             // 通信成功時の処理
@@ -193,11 +186,8 @@ jQuery(function($) {
 
             // 通信失敗時の処理
             error: function(xhr, textStatus, error) {
-                $('#ast').text(textStatus);
+                alert(textStatus);
             }
         });
     });
-
-    // test
-    console.log(getTextSize("AVILITY"));
 });

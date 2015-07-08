@@ -11,6 +11,7 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
     <script src="@routes.Assets.versioned("javascripts/typing.js")"></script>
     <style>
+     body { margin: 5px; }
      input { font-family: monospace; }
      #expression-input-group { max-width: 600px; }
      /* http://jsfiddle.net/Wc4xt/1052/ */
@@ -38,11 +39,11 @@
   <body>
     <h1>FL Typer</h1>
 
-    <form class="form-horizontal" id="expression-form" action="/typing" method="POST">
+    <div class="form-horizontal" id="expression-form">
       <div class="input-group" id="expression-input-group">
         <input id="expression" name="expression" type="text" class="form-control" autofocus>
         <span class="input-group-btn">
-          <button class="btn btn-primary" type="submit">Type It!</button>
+          <button id="type-button" class="btn btn-primary" type="submit">Type It!</button>
         </span>
         <span class="input-group-btn">
           <div class="dropdown">
@@ -58,13 +59,13 @@
           </div>
         </span>
       </div>
-    </form>
+    </div>
     <p>Backslashes and yen marks are treated as lambdas.</p>
 
     <div id="error-panel-group" class="panel-group" role="tablist" aria-multiselectable="true">
       <div class="panel panel-default">
         <div class="panel-heading" role="tab">
-          <h4 class="panel-heading">
+          <h4 class="panel-title">
               Syntax Error
           </h4>
         </div>
