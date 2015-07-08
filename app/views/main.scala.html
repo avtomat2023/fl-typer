@@ -61,10 +61,24 @@
     </form>
     <p>Backslashes and yen marks are treated as lambdas.</p>
 
-    <!-- http://jsfiddle.net/Wc4xt/1052/ -->
-    <div class="panel-group">
+    <div id="error-panel-group" class="panel-group" role="tablist" aria-multiselectable="true">
       <div class="panel panel-default">
-        <div class="panel-heading">
+        <div class="panel-heading" role="tab">
+          <h4 class="panel-heading">
+              Syntax Error
+          </h4>
+        </div>
+        <div class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingOne">
+          <div class="panel-body">
+            <pre><div id="error-message"></div></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="success-panel-group" class="panel-group" role="tablist" aria-multiselectable="true">
+      <div class="panel panel-default">
+        <div id="expression-heading" class="panel-heading" role="tab">
           <h4 class="panel-title">
             Expression
           </h4>
@@ -72,7 +86,7 @@
       </div>
 
       <div class="panel panel-default">
-        <div class="panel-heading">
+        <div id="type-heading" class="panel-heading" role="tab">
           <h4 class="panel-title">
             Type
           </h4>
@@ -80,26 +94,26 @@
       </div>
 
       <div class="panel panel-default">
-        <div class="panel-heading">
+        <div id="ast-heading" class="panel-heading" role="tab">
           <h4 class="panel-title">
-            <a data-toggle="collapse" data-target="#collapseOne" href="javascript:void(0)">
+            <a role="button" data-toggle="collapse" data-parent="#success-panel-group" href="#ast-panel" aria-expanded="true" aria-controls="ast-panel">
               Abstract Syntax Tree
             </a>
           </h4>
         </div>
-        <div id="ast-panel" class="panel-collapse collapse in">
+        <div id="ast-panel" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="ast-heading">
         </div>
       </div>
 
       <div class="panel panel-default">
-        <div class="panel-heading">
+        <div  id="inference-heading"class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" data-target="#collapseOne" href="javascript:void(0)">
+            <a role="button" data-toggle="collapse" data-parent="#success-panel-group" href="#inference-panel" aria-expanded="true" aria-controls="inference-panel">
               Step-by-Step Type Inference
             </a>
           </h4>
         </div>
-        <div class="panel-collapse collapse in">
+        <div id="inference-panel" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="inference-heading">
         </div>
       </div>
     </div>

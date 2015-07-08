@@ -107,8 +107,7 @@ jQuery(function($) {
         }
     }
 
-    var drawAst = function(json) {
-        var drawable = JSON.parse(json);
+    var drawAst = function(drawable) {
         attachSize(drawable);
 
         // SVGをセット
@@ -121,6 +120,9 @@ jQuery(function($) {
         var originY = svgMargin;
         draw($('#ast-svg').get(0), drawable, originX, originY);
     }
+
+    $('#success-panel-group').hide()
+    $('#error-panel-group').hide()
 
     $('body').append('<svg id="dummy-svg" xmlns="' + svgNS + '" version="1.1" display="none">');
 
@@ -163,6 +165,7 @@ jQuery(function($) {
             type: $form.attr('method'),
             data: $form.serialize(),
             timeout: 10000,  // 単位はミリ秒
+            dataType: 'json',
 
             // 送信前
             beforeSend: function(xhr, settings) {
@@ -176,8 +179,16 @@ jQuery(function($) {
             },
 
             // 通信成功時の処理
-            success: function(result, textStatus, xhr) {
-                drawAst(result);
+            success: function(json, textStatus, xhr) {
+                if (json.parsed) {
+                    drawAst(json.ast);
+                    $('#success-panel-group').show()
+                    $('#error-panel-group').hide();
+                } else {
+                    $('#error-message').text(json.error);
+                    $('#success-panel-group').hide()
+                    $('#error-panel-group').show();
+                }
             },
 
             // 通信失敗時の処理
