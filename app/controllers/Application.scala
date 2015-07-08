@@ -12,19 +12,20 @@ class Application extends Controller {
   }
 
   def typing(expr: String) = Action { implicit request =>
+    def noSuccess(msg: String, next: FLParser.Input) =
+      Ok(JsObject(Seq(
+        "parsed" -> JsBoolean(false),
+        "error" -> JsString("character " + next.pos.column + ": " + msg + "\n" +
+                            next.pos.longString)
+      )))
+
     FLParser.parse(expr) match {
-      case FLParser.Success(result, _) => Ok(JsObject(Seq(
+      case FLParser.Success(ast, _) => Ok(JsObject(Seq(
         "parsed" -> JsBoolean(true),
-        "ast" -> result.jsDrawable
+        "ast" -> ast.jsDrawable
       )))
-      case FLParser.Failure(msg, _) => Ok(JsObject(Seq(
-        "parsed" -> JsBoolean(false),
-        "error" -> JsString(msg)
-      )))
-      case FLParser.Error(msg, _) => Ok(JsObject(Seq(
-        "parsed" -> JsBoolean(false),
-        "error" -> JsString(msg)
-      )))
+      case FLParser.Failure(msg, next) => noSuccess(msg, next)
+      case FLParser.Error(msg, next) => noSuccess(msg, next)
     }
   }
 }
