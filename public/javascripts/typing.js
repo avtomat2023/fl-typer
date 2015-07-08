@@ -1,117 +1,128 @@
 jQuery(function($) {
-    var canvasFont = "30px Times New Roman";
-    var textHeight = 38;
+    var marginOfSubtrees = 10;
+    var edgeHeight = 20;
+    var svgMargin = 10;
+    var svgNS = "http://www.w3.org/2000/svg";
+    var textVerticalMargin = 5;
 
-    var astCanvas = document.getElementById("ast-canvas");
-    var astCtx = astCanvas.getContext("2d");
-    astCtx.font = canvasFont;
+    function getTextSize(text) {
+        var textNode = document.createTextNode(text);
+        var text = document.createElementNS(svgNS, 'text');
+        text.appendChild(textNode);
+        var g = document.createElementNS(svgNS, 'g');
+        // <g font-family="XITS" font-size="30" fill="blue">
+        g.setAttributeNS(null, 'font-family', 'XITS');
+        g.setAttributeNS(null, 'font-size', '30');
+        g.setAttributeNS(null, 'fill', 'black');
+        g.appendChild(text);
 
-    var drawAst = function(ast) {
-        var astJson = JSON.parse(ast)["ast"]
-
-        // astを、テキスト（大きさの情報を持つ）のツリーに変換
-        var transform1 = function(json) {
-            if (typeof(json) === "string") {
-                var dimension = astCtx.measureText(json);
-                return {
-                    kind: "text",
-                    text: json,
-                    width: dimension.width,
-                }
-            } else {
-                var head = transform1(json[0]);
-                var children = new Array()
-                for (var i = 1; i < json.length; i++)
-                    children[i-1] = transform1(json[i]);
-                return {
-                    kind: "tree",
-                    head: head,
-                    children: children
-                }
-            }
-        }
-        sizedTexts = transform1(astJson)
-
-        // 各部分木にサイズ情報を付加する
-        var marginOfSubtrees = 10;
-        var edgeHeight = 20;
-
-        // originXは中央、originYは上端
-        var transform2 = function(obj) {
-            if (obj.kind == "text") {
-                return {
-                    kind: "text",
-                    text: obj.text,
-                    width: obj.width,
-                    height: textHeight
-                }
-            } else {
-                var children = new Array();
-                for (var i in obj.children) {
-                    children[i] = transform2(obj.children[i]);
-                }
-                var widthOfChildren = 0
-                for (var i in children) {
-                    widthOfChildren += children[i].width;
-                }
-                widthOfChildren += marginOfSubtrees * (children.length-1);
-                var heightOfChildren = 0;
-                for (var i in children) {
-                    if (heightOfChildren < children[i].height) {
-                        heightOfChildren = children[i].height;
-                    }
-                }
-                var x = -widthOfChildren / 2;
-                for (var i in children) {
-                    children[i] = {
-                        relativeX: x, // 左端
-                        tree: children[i]
-                    }
-                    x += children[i].tree.width + marginOfSubtrees;
-                }
-                head = transform2(obj.head);
-                return {
-                    kind: "tree",
-                    head: head,
-                    children: children,
-                    width: Math.max(head.width, widthOfChildren),
-                    height: head.height + edgeHeight + heightOfChildren
-                }
-            }
-        }
-        var drawableTree = transform2(sizedTexts);
-
-        // キャンバスのサイズをセット
-        var canvasMargin = 10;
-        astCtx.canvas.width = drawableTree.width + canvasMargin*2;
-        astCtx.canvas.height = drawableTree.height + canvasMargin*2;
-        astCtx.font = canvasFont;
-        astCtx.textBaseline = "top";
-        astCtx.textAlign = "center";
-        astCtx.lineWidth = 2;
-
-        // キャンバスに描画
-        // xは中央、yは上端
-        var draw = function(obj, x, y) {
-            if (obj.kind == "text") {
-                astCtx.fillText(obj.text, Math.round(x), Math.round(y));
-            } else {
-                draw(obj.head, x, y);
-                var botOfHead = y + obj.head.height;
-                var nextY = botOfHead + edgeHeight;
-                for (var i in obj.children) {
-                    var node = obj.children[i];
-                    var nextX = x + node.relativeX + node.tree.width/2;
-                    draw(node.tree, nextX, nextY);
-                    astCtx.moveTo(Math.round(x), Math.round(botOfHead));
-                    astCtx.lineTo(Math.round(nextX), Math.round(nextY));
-                    astCtx.lineWidth = 1;
-                    astCtx.stroke();
-                }
-            }
-        }
-        draw(drawableTree, canvasMargin + drawableTree.width/2, canvasMargin);
+        var svg = $('#dummy-svg').get(0);
+        svg.appendChild(g);
+        svg.setAttribute('display', 'inline');
+        var bbox = g.getBBox();
+        var size = {
+            width: bbox.width,
+            height: bbox.height
+        };
+        svg.setAttribute('display', 'none');
+        svg.removeChild(g);
+        return size;
     }
+
+    // サーバから受け取ったdrawable ASTに、サイズ情報を付加する
+    function attachSize(drawable) {
+        if (drawable.kind == "text") {
+            var size = getTextSize(drawable.text);
+            drawable.width = size.width;
+            drawable.height = size.height + textVerticalMargin*2;
+        } else {
+            attachSize(drawable.node)
+            for (var i in drawable.children)
+                attachSize(drawable.children[i])
+
+            var widthOfChildren = 0
+            for (var i in drawable.children)
+                widthOfChildren += drawable.children[i].width;
+            widthOfChildren += marginOfSubtrees * (drawable.children.length-1);
+
+            var heightOfChildren = 0;
+            for (var i in drawable.children)
+                if (heightOfChildren < drawable.children[i].height)
+                    heightOfChildren = drawable.children[i].height;
+
+            var x = -widthOfChildren / 2;
+            for (var i in drawable.children) {
+                drawable.children[i] = {
+                    relativeX: x, // 左端
+                    tree: drawable.children[i]
+                }
+                x += drawable.children[i].tree.width + marginOfSubtrees;
+            }
+
+            drawable.width = Math.max(drawable.node.width, widthOfChildren);
+            drawable.height = drawable.node.height + edgeHeight + heightOfChildren;
+        }
+    }
+
+    // SVG要素に描画
+    // xは中央、yは上端
+    function draw(svg, drawable, x, y) {
+        var svgNS = "http://www.w3.org/2000/svg";
+
+        if (drawable.kind == "text") {
+            var textNode = document.createTextNode(drawable.text);
+            var text = document.createElementNS(svgNS, 'text');
+            text.setAttributeNS(null, 'dominant-baseline', 'text-before-edge');
+            text.setAttributeNS(null, 'text-anchor', 'middle');
+            text.setAttributeNS(null, 'x', x.toString());
+            text.setAttributeNS(null, 'y', (y+textVerticalMargin).toString());
+            text.appendChild(textNode);
+            var g = document.createElementNS(svgNS, 'g');
+            g.setAttributeNS(null, 'font-family', 'XITS');
+            g.setAttributeNS(null, 'font-size', '30');
+            g.setAttributeNS(null, 'fill', 'black');
+            g.appendChild(text);
+            svg.appendChild(g);
+        } else {
+            draw(svg, drawable.node, x, y);
+            var botOfHead = y + drawable.node.height;
+            var nextY = botOfHead + edgeHeight;
+            for (var i in drawable.children) {
+                var node = drawable.children[i];
+                var nextX = x + node.relativeX + node.tree.width/2;
+                draw(svg, node.tree, nextX, nextY);
+
+                var g = document.createElementNS(svgNS, 'g');
+                g.setAttributeNS(null, 'stroke', 'black');
+                g.setAttributeNS(null, 'stroke-width', '2');
+                g.setAttributeNS(null, 'stroke-linecap', 'round');
+                var line = document.createElementNS(svgNS, 'line');
+                line.setAttributeNS(null, 'x1', x.toString());
+                line.setAttributeNS(null, 'y1', botOfHead.toString());
+                line.setAttributeNS(null, 'x2', nextX.toString());
+                line.setAttributeNS(null, 'y2', nextY.toString());
+                g.appendChild(line);
+                svg.appendChild(g);
+            }
+        }
+    }
+
+    var drawAst = function(json) {
+        var drawable = JSON.parse(json);
+        attachSize(drawable);
+
+        // SVGをセット
+        var svg = '<svg id="ast-svg" xmls="' + svgNS + '" version="1.1" ' +
+            'width="' + (drawable.width + svgMargin*2).toString() + '" ' +
+            'height="' + (drawable.height + svgMargin*2).toString() + '">' +
+            '</svg>';
+        $('#ast-panel').html(svg);
+        var originX = svgMargin + drawable.width/2;
+        var originY = svgMargin;
+        draw($('#ast-svg').get(0), drawable, originX, originY);
+    }
+
+    $('body').append('<svg id="dummy-svg" xmlns="' + svgNS + '" version="1.1" display="none">');
 
     $('#expression').keypress(function(event) {
         var backslash = '\\'.charCodeAt(0);
@@ -175,4 +186,7 @@ jQuery(function($) {
             }
         });
     });
+
+    // test
+    console.log(getTextSize("AVILITY"));
 });

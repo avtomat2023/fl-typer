@@ -18,7 +18,7 @@ class Application extends Controller {
     val expr = form.bindFromRequest.get
     val result = FLParser.parse(expr)
     if (result.successful)
-      Ok(result.get.toJsObject.toString)
+      Ok(result.get.jsDrawable.toString)
     else
       Ok(expr + "\nparse failed:\n" + result)
   }

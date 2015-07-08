@@ -23,12 +23,20 @@
      .panel-heading a.collapsed:after {
          content:"\e080";
      }
+     @@font-face {
+         font-family: XITS;
+         src: url('@routes.Assets.versioned("fonts/xits-math.otf")');
+     }
+     @@font-face {
+         font-family: XITS;
+         font-style: italic;
+         src: url('@routes.Assets.versioned("fonts/xits-italic.otf")');
+     }
     </style>
   </head>
 
   <body>
     <h1>FL Typer</h1>
-    Backslashes and yen marks are treated as lambdas.
 
     <form class="form-horizontal" id="expression-form" action="/typing" method="POST">
       <div class="input-group" id="expression-input-group">
@@ -51,9 +59,26 @@
         </span>
       </div>
     </form>
+    <p>Backslashes and yen marks are treated as lambdas.</p>
 
     <!-- http://jsfiddle.net/Wc4xt/1052/ -->
     <div class="panel-group">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            Expression
+          </h4>
+        </div>
+      </div>
+
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            Type
+          </h4>
+        </div>
+      </div>
+
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
@@ -62,8 +87,19 @@
             </a>
           </h4>
         </div>
-        <div id="collapseOne" class="panel-collapse collapse in">
-          <canvas id="ast-canvas" width="0" height="0"></canvas>
+        <div id="ast-panel" class="panel-collapse collapse in">
+        </div>
+      </div>
+
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            <a data-toggle="collapse" data-target="#collapseOne" href="javascript:void(0)">
+              Step-by-Step Type Inference
+            </a>
+          </h4>
+        </div>
+        <div class="panel-collapse collapse in">
         </div>
       </div>
     </div>
