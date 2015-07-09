@@ -4,18 +4,12 @@ jQuery(function($) {
     var svgMargin = 10;
     var svgNS = "http://www.w3.org/2000/svg";
     var textVerticalMargin = 5;
+    var textSize = 30;
+    var subscriptSize = 15;
+    var subscriptYOffset = 5;
 
-    function getTextSize(text) {
-        var textNode = document.createTextNode(text);
-        var text = document.createElementNS(svgNS, 'text');
-        text.appendChild(textNode);
-        var g = document.createElementNS(svgNS, 'g');
-        // <g font-family="XITS" font-size="30" fill="blue">
-        g.setAttributeNS(null, 'font-family', 'XITS');
-        g.setAttributeNS(null, 'font-size', '30');
-        g.setAttributeNS(null, 'fill', 'black');
-        g.appendChild(text);
-
+    function getRichtextSize(contents) {
+        var g = richtextToSvg(contents, 'left', 0, 0);
         var svg = $('#dummy-svg').get(0);
         svg.appendChild(g);
         svg.setAttribute('display', 'inline');
@@ -29,13 +23,47 @@ jQuery(function($) {
         return size;
     }
 
+    function richtextToSvg(contents, anchor, x, y) {
+        var g = document.createElementNS(svgNS, 'g');
+        g.setAttributeNS(null, 'font-family', 'XITS');
+        g.setAttributeNS(null, 'font-size', textSize.toString());
+        g.setAttributeNS(null, 'fill', 'black');
+
+        var text = document.createElementNS(svgNS, 'text');
+        text.setAttributeNS(null, 'text-anchor', anchor);
+        text.setAttributeNS(null, 'x', x.toString());
+        text.setAttributeNS(null, 'y', y.toString());
+
+        var dy = 0;
+        for (var i in contents) {
+            var tspan = document.createElementNS(svgNS, 'tspan');
+            tspan.setAttributeNS(null, 'dominant-baseline', 'text-before-edge');
+            if (contents[i].subscript) {
+                tspan.setAttributeNS(null, 'font-size', subscriptSize.toString());
+                dy += subscriptYOffset;
+            }
+            if (dy != 0)
+                tspan.setAttributeNS(null, 'dy', dy.toString());
+            if (contents[i].italic)
+                tspan.setAttributeNS(null, 'font-style', 'italic');
+
+            var textNode = document.createTextNode(contents[i].text);
+            tspan.appendChild(textNode);
+            text.appendChild(tspan);
+        }
+
+        g.appendChild(text);
+        return g;
+    }
+
     // サーバから受け取ったdrawable ASTに、サイズ情報を付加する
     function attachSize(drawable) {
-        if (drawable.kind == "text") {
-            var size = getTextSize(drawable.text);
+        if (drawable.kind == "richtext") {
+            // FIXME
+            var size = getRichtextSize(drawable.contents);
             drawable.width = size.width;
             drawable.height = size.height + textVerticalMargin*2;
-        } else {
+        } else { // kind == "tree"
             attachSize(drawable.node)
             for (var i in drawable.children)
                 attachSize(drawable.children[i])
@@ -69,21 +97,10 @@ jQuery(function($) {
     function draw(svg, drawable, x, y) {
         var svgNS = "http://www.w3.org/2000/svg";
 
-        if (drawable.kind == "text") {
-            var textNode = document.createTextNode(drawable.text);
-            var text = document.createElementNS(svgNS, 'text');
-            text.setAttributeNS(null, 'dominant-baseline', 'text-before-edge');
-            text.setAttributeNS(null, 'text-anchor', 'middle');
-            text.setAttributeNS(null, 'x', x.toString());
-            text.setAttributeNS(null, 'y', (y+textVerticalMargin).toString());
-            text.appendChild(textNode);
-            var g = document.createElementNS(svgNS, 'g');
-            g.setAttributeNS(null, 'font-family', 'XITS');
-            g.setAttributeNS(null, 'font-size', '30');
-            g.setAttributeNS(null, 'fill', 'black');
-            g.appendChild(text);
-            svg.appendChild(g);
-        } else {
+        if (drawable.kind == "richtext") {
+            svg.appendChild(richtextToSvg(drawable.contents, 'middle',
+                                          x, y + textVerticalMargin));
+        } else { // kind == "tree"
             draw(svg, drawable.node, x, y);
             var botOfHead = y + drawable.node.height;
             var nextY = botOfHead + edgeHeight;

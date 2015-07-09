@@ -22,7 +22,7 @@ class Application extends Controller {
     FLParser.parse(expr) match {
       case FLParser.Success(ast, _) => Ok(JsObject(Seq(
         "parsed" -> JsBoolean(true),
-        "ast" -> ast.jsDrawable
+        "ast" -> ast.toJsTree
       )))
       case FLParser.Failure(msg, next) => noSuccess(msg, next)
       case FLParser.Error(msg, next) => noSuccess(msg, next)

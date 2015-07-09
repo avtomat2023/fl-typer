@@ -1,55 +1,48 @@
 package ast
 
-import play.api.libs.json._
+import play.api.libs.json.JsObject
+import visual._
 
 sealed abstract class Ast {
-  def jsDrawable: JsObject
-  protected def jsDrawableText(text: String, italic: Boolean = false): JsObject =
-    JsObject(Seq(
-      "kind" -> JsString("text"),
-      "text" -> JsString(text)
-    ))
-  protected def jsDrawableTree(node: String, children: Ast*): JsObject =
-    jsDrawableTreeFromJs(node, children.map(_.jsDrawable): _*)
-  protected def jsDrawableTreeFromJs(node: String,
-                                     children: JsObject*): JsObject =
-    JsObject(Seq(
-      "kind" -> JsString("tree"),
-      "node" -> jsDrawableText(node),
-      "children" -> JsArray(children)
-    ))
+  def toJsTree: JsObject
+}
+
+object Ast {
+  // utility function
+  def jsTree(node: String, children: Ast*) =
+    Visual.jsTree(node, children.map(_.toJsTree): _*)
 }
 
 case class Const(value: String) extends Ast {
-  def jsDrawable = jsDrawableText(value)
+  def toJsTree = Visual.jsText(value)
 }
 case class Var(name: String) extends Ast {
-  def jsDrawable = jsDrawableText(name)
+  def toJsTree = Visual.jsText(name, Italic())
 }
 case object Nil extends Ast {
-  def jsDrawable = jsDrawableText("nil")
+  def toJsTree = Visual.jsText("nil")
 }
 case class Cons(car: Ast, cdr: Ast) extends Ast {
-  def jsDrawable = jsDrawableTree("::", car, cdr)
+  def toJsTree = Ast.jsTree("::", car, cdr)
 }
 case class Abs(variable: Var, body: Ast) extends Ast {
-  def jsDrawable = jsDrawableTree("λ", variable, body)
+  def toJsTree = Ast.jsTree("λ", variable, body)
 }
 case class App(func: Ast, arg: Ast) extends Ast {
-  def jsDrawable = jsDrawableTree("app", func, arg)
+  def toJsTree = Ast.jsTree("app", func, arg)
 }
 case class If(cond: Ast, thenExpr: Ast, elseExpr: Ast) extends Ast {
-  def jsDrawable = jsDrawableTree("if", cond, thenExpr, elseExpr)
+  def toJsTree = Ast.jsTree("if", cond, thenExpr, elseExpr)
 }
 case class Let(variable: Var, binding: Ast, body: Ast) extends Ast {
-  def jsDrawable = jsDrawableTree("let", variable, binding, body)
+  def toJsTree = Ast.jsTree("let", variable, binding, body)
 }
 case class Case(caseExpr: Ast, nilExpr: Ast,
                 carPat: Var, cdrPat: Var, consExpr: Ast) extends Ast {
-  def jsDrawable = {
-    val nilAlt = jsDrawableTree("nil", nilExpr)
-    val condAlt = jsDrawableTree(carPat.name + "::" + cdrPat.name, consExpr)
-    jsDrawableTreeFromJs("case", caseExpr.jsDrawable, nilAlt, condAlt)
+  def toJsTree = {
+    val nilAlt = Ast.jsTree("nil", nilExpr)
+    val condAlt = Ast.jsTree(carPat.name + "::" + cdrPat.name, consExpr)
+    Visual.jsTree("case", caseExpr.toJsTree, nilAlt, condAlt)
   }
 }
 
