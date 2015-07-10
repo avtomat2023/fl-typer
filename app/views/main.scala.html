@@ -6,8 +6,10 @@
     <title>FL Typer</title>
     <!-- stylesheet: https://bootswatch.com/cerulean/ -->
     <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/bootstrap.min.css")">
+    <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/bootstrap-select.min.css")">
     <script src="https://code.jquery.com/jquery-2.0.2.min.js"></script>
     <script src="@routes.Assets.versioned("javascripts/jquery.caret-1.5.2.min.js")"></script>
+    <script src="@routes.Assets.versioned("javascripts/bootstrap-select.min.js")"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
     <script src="@routes.Assets.versioned("javascripts/typing.js")"></script>
     <style>
@@ -33,32 +35,33 @@
          font-style: italic;
          src: url('@routes.Assets.versioned("fonts/xits-italic.otf")');
      }
+     @@font-face {
+         font-family: Inconsolata-Hellenic;
+         src: url('@routes.Assets.versioned("fonts/inconsolata-hellenic.ttf")');
+     }
+     /*
+     h1 {
+         font-family: XITS;
+         font-size: 30;
+     }
+     */
     </style>
   </head>
 
   <body>
     <h1>FL Typer</h1>
 
-    <div class="form-horizontal">
-      <div class="input-group" id="expression-input-group">
-        <input id="expression" name="expression" type="text" class="form-control" autofocus>
-        <span class="input-group-btn">
-          <button id="type-button" class="btn btn-primary" type="submit">Type It!</button>
-        </span>
-        <span class="input-group-btn">
-          <div class="dropdown">
-            <button class="btn btn-default dropdown-toggle" type="button" id="sample-program-button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-              Sample Programs
-              <span class="caret"></span>
-            </button>
-            <ul class="dropdown-menu" aria-labelledby="sample-program-button">
-              <li><a class="sample-menu" href="javascript:void(0)">fst</a></li>
-              <li><a class="sample-menu" href="javascript:void(0)">snd</a></li>
-              <li><a class="sample-menu" href="javascript:void(0)">List Constraction</a></li>
-            </ul>
-          </div>
-        </span>
+    <div style="width: 100%">
+      <div style="display: inline-block">
+        <input id="expression" name="expression" type="text" class="form-control" autofocus style="width: 500px">
       </div>
+        <button id="type-button" class="btn btn-primary" type="submit">Type It!</button>
+        <select id="sample-select" class="selectpicker">
+          <option>-- Sample Programs --</option>
+          <option>fst</option>
+          <option>snd</option>
+          <option>List Construction</option>
+        </select>
     </div>
     <p>Backslashes and yen marks are treated as lambdas.</p>
 
@@ -97,19 +100,18 @@
       <div class="panel panel-default">
         <div id="ast-heading" class="panel-heading" role="tab">
           <h4 class="panel-title">
-            <a data-toggle="collapse" data-target="#ast-panel" href="#ast-panel">
+            <a data-toggle="collapse" data-target="#ast-panel" href="javascript:void(0)">
               Abstract Syntax Tree
             </a>
           </h4>
         </div>
-        <div id="ast-panel" class="panel-collapse collapse in">
-        </div>
+        <div id="ast-panel" class="panel-collapse collapse in"></div>
       </div>
 
       <div class="panel panel-default">
         <div id="inference-heading" class="panel-heading" role="tab">
           <h4 class="panel-title">
-            <a data-toggle="collapse" data-target="#inference-panel" href="#inference-panel">
+            <a data-toggle="collapse" data-target="#inference-panel" href="javascript:void(0)">
               Step-by-Step Type Inference
             </a>
           </h4>
