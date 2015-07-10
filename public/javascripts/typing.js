@@ -8,22 +8,35 @@ jQuery(function($) {
     var subscriptSize = 15;
     var subscriptYOffset = 5;
 
+    // kindが"richtext"であるJSONを描画した時のサイズを計算する
+    // JSON自体ではなくcontentsを受け取る
     function getRichtextSize(contents) {
-        var g = richtextToSvg(contents, 'left', 0, 0);
+        // ダミーのsvg要素に描画（g要素を追加）する
+        var g = richtextToSvgG(contents, 'left', 0, 0);
         var svg = $('#dummy-svg').get(0);
         svg.appendChild(g);
+        // ダミーのsvg要素を表示
         svg.setAttribute('display', 'inline');
+        // Bounding Boxを取得
         var bbox = g.getBBox();
         var size = {
             width: bbox.width,
             height: bbox.height
         };
+        // ダミーのsvg要素を隠す
+        // Javascript実行中に表示・非表示を切り替えるので、
+        // 実際にブラウザ上に表示されることはないはず
         svg.setAttribute('display', 'none');
+        // 追加したg要素を削除
         svg.removeChild(g);
         return size;
     }
 
-    function richtextToSvg(contents, anchor, x, y) {
+    // kindが"richtext"であるJSONをSVGのg要素に変換する
+    // JSON自体ではなくcontentsを受け取る
+    // anchorは左右のアラインメントで、"left", "middle", "right"で指定
+    // x, yは表示位置 xはアラインメントに従う yはテキスト上端の位置
+    function richtextToSvgG(contents, anchor, x, y) {
         var g = document.createElementNS(svgNS, 'g');
         g.setAttributeNS(null, 'font-family', 'XITS');
         g.setAttributeNS(null, 'font-size', textSize.toString());
@@ -37,13 +50,22 @@ jQuery(function($) {
         var dy = 0;
         for (var i in contents) {
             var tspan = document.createElementNS(svgNS, 'tspan');
+            // y座標を上端だと解釈するよう、基底線を指定
             tspan.setAttributeNS(null, 'dominant-baseline', 'text-before-edge');
+            // 下付き文字の処理
+            var subscripted = false;
             if (contents[i].subscript) {
+                subscripted = true;
                 tspan.setAttributeNS(null, 'font-size', subscriptSize.toString());
                 dy += subscriptYOffset;
             }
             if (dy != 0)
                 tspan.setAttributeNS(null, 'dy', dy.toString());
+            if (subscripted)
+                dy = -subscriptYOffset;
+            else
+                dy = 0;
+            // 斜体の処理
             if (contents[i].italic)
                 tspan.setAttributeNS(null, 'font-style', 'italic');
 
@@ -56,93 +78,103 @@ jQuery(function($) {
         return g;
     }
 
-    // サーバから受け取ったdrawable ASTに、サイズ情報を付加する
-    function attachSize(drawable) {
-        if (drawable.kind == "richtext") {
-            // FIXME
-            var size = getRichtextSize(drawable.contents);
-            drawable.width = size.width;
-            drawable.height = size.height + textVerticalMargin*2;
+    // (x1, y1)から(x2, y2)への直線を表す、SVGのg要素を作る
+    function createLineSvgG(x1, y1, x2, y2) {
+        var g = document.createElementNS(svgNS, 'g');
+        g.setAttributeNS(null, 'stroke', 'black');
+        g.setAttributeNS(null, 'stroke-width', '2');
+        g.setAttributeNS(null, 'stroke-linecap', 'round');
+
+        var line = document.createElementNS(svgNS, 'line');
+        line.setAttributeNS(null, 'x1', x1.toString());
+        line.setAttributeNS(null, 'y1', y1.toString());
+        line.setAttributeNS(null, 'x2', x2.toString());
+        line.setAttributeNS(null, 'y2', y2.toString());
+
+        g.appendChild(line);
+        return g;
+    }
+
+    // サーバから受け取ったASTに、サイズ情報を付加する
+    function attachSize(ast) {
+        if (ast.kind == "richtext") {
+            var size = getRichtextSize(ast.contents);
+            ast.width = size.width;
+            ast.height = size.height + textVerticalMargin*2;
         } else { // kind == "tree"
-            attachSize(drawable.node)
-            for (var i in drawable.children)
-                attachSize(drawable.children[i])
+            attachSize(ast.node)
+            for (var i in ast.children)
+                attachSize(ast.children[i])
 
             var widthOfChildren = 0
-            for (var i in drawable.children)
-                widthOfChildren += drawable.children[i].width;
-            widthOfChildren += marginOfSubtrees * (drawable.children.length-1);
+            for (var i in ast.children)
+                widthOfChildren += ast.children[i].width;
+            widthOfChildren += marginOfSubtrees * (ast.children.length-1);
 
             var heightOfChildren = 0;
-            for (var i in drawable.children)
-                if (heightOfChildren < drawable.children[i].height)
-                    heightOfChildren = drawable.children[i].height;
+            for (var i in ast.children)
+                if (heightOfChildren < ast.children[i].height)
+                    heightOfChildren = ast.children[i].height;
 
             var x = -widthOfChildren / 2;
-            for (var i in drawable.children) {
-                drawable.children[i] = {
+            for (var i in ast.children) {
+                ast.children[i] = {
                     relativeX: x, // 左端
-                    tree: drawable.children[i]
+                    tree: ast.children[i]
                 }
-                x += drawable.children[i].tree.width + marginOfSubtrees;
+                x += ast.children[i].tree.width + marginOfSubtrees;
             }
 
-            drawable.width = Math.max(drawable.node.width, widthOfChildren);
-            drawable.height = drawable.node.height + edgeHeight + heightOfChildren;
+            ast.width = Math.max(ast.node.width, widthOfChildren);
+            ast.height = ast.node.height + edgeHeight + heightOfChildren;
         }
     }
 
-    // SVG要素に描画
+    // サイズ情報の付いたASTをsvg要素に描画
     // xは中央、yは上端
-    function draw(svg, drawable, x, y) {
-        var svgNS = "http://www.w3.org/2000/svg";
-
-        if (drawable.kind == "richtext") {
-            svg.appendChild(richtextToSvg(drawable.contents, 'middle',
-                                          x, y + textVerticalMargin));
+    function drawSizedAst(svg, ast, x, y) {
+        if (ast.kind == "richtext") {
+            svg.appendChild(richtextToSvgG(ast.contents, 'middle',
+                                           x, y + textVerticalMargin));
         } else { // kind == "tree"
-            draw(svg, drawable.node, x, y);
-            var botOfHead = y + drawable.node.height;
+            drawSizedAst(svg, ast.node, x, y);
+            var botOfHead = y + ast.node.height;
             var nextY = botOfHead + edgeHeight;
-            for (var i in drawable.children) {
-                var node = drawable.children[i];
+            for (var i in ast.children) {
+                var node = ast.children[i];
                 var nextX = x + node.relativeX + node.tree.width/2;
-                draw(svg, node.tree, nextX, nextY);
+                drawSizedAst(svg, node.tree, nextX, nextY);
 
-                var g = document.createElementNS(svgNS, 'g');
-                g.setAttributeNS(null, 'stroke', 'black');
-                g.setAttributeNS(null, 'stroke-width', '2');
-                g.setAttributeNS(null, 'stroke-linecap', 'round');
-                var line = document.createElementNS(svgNS, 'line');
-                line.setAttributeNS(null, 'x1', x.toString());
-                line.setAttributeNS(null, 'y1', botOfHead.toString());
-                line.setAttributeNS(null, 'x2', nextX.toString());
-                line.setAttributeNS(null, 'y2', nextY.toString());
-                g.appendChild(line);
-                svg.appendChild(g);
+                svg.appendChild(createLineSvgG(x, botOfHead, nextX, nextY));
             }
         }
     }
 
-    var drawAst = function(drawable) {
-        attachSize(drawable);
-
-        // SVGをセット
+    // サーバから受け取ったASTを描画
+    // astは破壊的に変更されるため、再利用できない
+    function drawAst(ast) {
+        attachSize(ast);
+        // 描画先であるsvg要素を作成
         var svg = '<svg id="ast-svg" xmls="' + svgNS + '" version="1.1" ' +
-            'width="' + (drawable.width + svgMargin*2).toString() + '" ' +
-            'height="' + (drawable.height + svgMargin*2).toString() + '">' +
+            'width="' + (ast.width + svgMargin*2).toString() + '" ' +
+            'height="' + (ast.height + svgMargin*2).toString() + '">' +
             '</svg>';
         $('#ast-panel').html(svg);
-        var originX = svgMargin + drawable.width/2;
+        // 描画
+        var originX = svgMargin + ast.width/2;
         var originY = svgMargin;
-        draw($('#ast-svg').get(0), drawable, originX, originY);
+        drawSizedAst($('#ast-svg').get(0), ast, originX, originY);
     }
 
     $('#success-panel-group').hide()
     $('#error-panel-group').hide()
 
-    $('body').append('<svg id="dummy-svg" xmlns="' + svgNS + '" version="1.1" display="none">');
+    $('body').append('<svg id="dummy-svg" xmlns="' + svgNS +
+                     '" version="1.1" display="none">');
 
+    // 式を入力するテキストボックスで
+    // バックスラッシュと円マークをラムダに変換する処理
+    // および、Enterキーが押されたら型付けボタンを押す処理
     $('#expression').keypress(function(event) {
         var enter = 13;
         var backslash = '\\'.charCodeAt(0);
@@ -160,15 +192,19 @@ jQuery(function($) {
         }
     });
 
+    // サンプルプログラムのセレクタが選択された時の処理
     var samplePrograms = {
         'fst': 'λx.y.x',
         'snd': 'λx.y.y',
-        'List Constraction': '1::2::3::4::nil'
+        'List Construction': '1::2::3::4::nil'
     }
-    $('.sample-menu').click(function() {
-        $('#expression').val(samplePrograms[$(this).html()]);
+    $('#sample-select').on('change', function() {
+        var key = $(this).find("option:selected").val();
+        if (key in samplePrograms)
+            $('#expression').val(samplePrograms[key]);
     });
 
+    // 型付けボタンが押された時のAjax通信処理
     // http://ginpen.com/2013/05/07/jquery-ajax-form/
     $('#type-button').click(function(event) {
         $.ajax({
