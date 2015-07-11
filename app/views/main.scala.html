@@ -120,5 +120,18 @@
         </div>
       </div>
     </div>
+
+    <!-- HTMLのロード時にXITSフォントを強制的に読み込ませるため
+         あらかじめSVGでXITSを表示しておく
+         これがないと、実際にXITSが描画されるまでフォントがロードされず
+         正確なサイズ計算が行えない
+         そのため、一回目のSVG描画での描画位置が、二回目以降とずれる
+         この要素は、読み込みが完了した瞬間にJavascriptで非表示にする -->
+    <svg id="dummy-svg" xmlns="http://www.w3.org/2000/svg" version="1.1">
+      <g font-family="XITS" font-size="30px" fill="black">
+        <text>a</text>
+        <text font-style="italic">a</text>
+      </g>
+    </svg>
   </body>
 </html>

@@ -1,8 +1,3 @@
-// バグ：ASTを複数回表示したとき、一回目の描画だけサイズが違う
-// 一度画面に表示されていないと、テキストの大きさが正しく計算されないのが原因
-// Webフォントは必要になったタイミングで読み込まれるようなので、
-// 最初にASTが描画されるまでXITSフォントが読み込まれず、正しい大きさが計算されない
-
 jQuery(function($) {
     var marginOfSubtrees = 10;
     var edgeHeight = 20;
@@ -174,8 +169,10 @@ jQuery(function($) {
     $('#success-panel-group').hide()
     $('#error-panel-group').hide()
 
-    $('body').append('<svg id="dummy-svg" xmlns="' + svgNS +
-                     '" version="1.1" display="none">');
+    // ダミーのsvg要素を、読み込みが完了した瞬間に非表示にする
+    $('#dummy-svg').ready(function() {
+        $('#dummy-svg').get(0).setAttribute('display', 'none');
+    });
 
     // 式を入力するテキストボックスで
     // バックスラッシュと円マークをラムダに変換する処理
