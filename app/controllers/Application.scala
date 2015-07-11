@@ -22,7 +22,8 @@ class Application extends Controller {
     FLParser.parse(expr) match {
       case FLParser.Success(ast, _) => Ok(JsObject(Seq(
         "parsed" -> JsBoolean(true),
-        "ast" -> ast.toJsTree
+        "ast" -> ast.toVisualAst.toJsObject,
+        "expr" -> ast.toVisualExpr.toJsObject
       )))
       case FLParser.Failure(msg, next) => noSuccess(msg, next)
       case FLParser.Error(msg, next) => noSuccess(msg, next)

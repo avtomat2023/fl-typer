@@ -95,6 +95,16 @@ jQuery(function($) {
         return g;
     }
 
+    // svg要素のhtml表現を作る
+    // width, heightはsvgの内容物のサイズを指定する
+    // 実際のsvg要素のサイズは、svgMarginの二倍(両端)を加算したものとなる
+    function createSvgHtml(id, width, height) {
+        return '<svg id="' + id + '" xmls="' + svgNS + '" version="1.1" ' +
+            'width="' + (width + svgMargin*2).toString() + '" ' +
+            'height="' + (height + svgMargin*2).toString() + '">' +
+            '</svg>';
+    }
+
     // サーバから受け取ったASTに、サイズ情報を付加する
     function attachSize(ast) {
         if (ast.kind == "richtext") {
@@ -130,6 +140,15 @@ jQuery(function($) {
         }
     }
 
+    // サーバから受け取った式を描画
+    function drawExpr(expr) {
+        var size = getRichtextSize(expr.contents);
+        var svg = createSvgHtml('expr-svg', size.width, size.height);
+        $('#expr-panel').html(svg);
+        var g = richtextToSvgG(expr.contents, 'left', svgMargin, svgMargin);
+        $('#expr-svg').get(0).appendChild(g);
+    }
+
     // サイズ情報の付いたASTをsvg要素に描画
     // xは中央、yは上端
     function drawSizedAst(svg, ast, x, y) {
@@ -155,10 +174,7 @@ jQuery(function($) {
     function drawAst(ast) {
         attachSize(ast);
         // 描画先であるsvg要素を作成
-        var svg = '<svg id="ast-svg" xmls="' + svgNS + '" version="1.1" ' +
-            'width="' + (ast.width + svgMargin*2).toString() + '" ' +
-            'height="' + (ast.height + svgMargin*2).toString() + '">' +
-            '</svg>';
+        var svg = createSvgHtml("ast-svg", ast.width, ast.height);
         $('#ast-panel').html(svg);
         // 描画
         var originX = svgMargin + ast.width/2;
@@ -229,6 +245,7 @@ jQuery(function($) {
             // 通信成功時の処理
             success: function(json, textStatus, xhr) {
                 if (json.parsed) {
+                    drawExpr(json.expr);
                     drawAst(json.ast);
                     $('#success-panel-group').show()
                     $('#error-panel-group').hide();

@@ -2,31 +2,46 @@ package visual
 
 import play.api.libs.json._
 
-sealed trait TextStyle;
-case class Upright() extends TextStyle;
-case class Italic() extends TextStyle;
-case class Subscript() extends TextStyle;
+sealed trait TextStyle
+case class Upright() extends TextStyle
+case class Italic() extends TextStyle
+case class Subscript() extends TextStyle
 
-object Visual {
-  def jsRichtext(fragments: (String, TextStyle)*): JsObject =
-    JsObject(Seq(
-      "kind" -> JsString("richtext"),
-      "contents" -> JsArray(fragments.map{ case (text, style) =>
-        JsObject(Seq(
-          "text" -> JsString(text),
-          "italic" -> JsBoolean(style == Italic()),
-          "subscript" -> JsBoolean(style == Subscript())
-        ))
-      })
-    ))
+case class RichtextFragment(text: String, style: TextStyle)
 
-  def jsText(text: String, style: TextStyle = Upright()): JsObject =
-    jsRichtext((text, style))
+sealed trait Element {
+  def toJsObject: JsObject
+}
 
-  def jsTree(node: String, children: JsObject*): JsObject =
-    JsObject(Seq(
-      "kind" -> JsString("tree"),
-      "node" -> jsText(node),
-      "children" -> JsArray(children)
-    ))
+case class Richtext(fragments: Vector[RichtextFragment]) extends Element {
+  def toJsObject = JsObject(Seq(
+    "kind" -> JsString("richtext"),
+    "contents" -> JsArray(fragments.map{ case RichtextFragment(text, style) =>
+      JsObject(Seq(
+        "text" -> JsString(text),
+        "italic" -> JsBoolean(style == Italic()),
+        "subscript" -> JsBoolean(style == Subscript())
+      ))
+    })
+  ))
+
+  def +(other: Richtext): Richtext = Richtext(this.fragments ++ other.fragments)
+}
+
+object Richtext {
+  def apply(text: String, style: TextStyle = Upright()): Richtext =
+    Richtext(Vector(RichtextFragment(text, style)))
+}
+
+case class Tree(node: Richtext, children: Element*) extends Element {
+  def toJsObject = JsObject(Seq(
+    "kind" -> JsString("tree"),
+    "node" -> node.toJsObject,
+    "children" -> JsArray(children.map(_.toJsObject))
+  ))
+}
+
+object Tree {
+  def apply(node: String, children: Element*): Tree =
+    Tree(Richtext(node), children: _*)
 }
