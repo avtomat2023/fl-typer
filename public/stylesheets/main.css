@@ -1,0 +1,49 @@
+@font-face {
+    font-family: Inconsolata-Hellenic;
+    src: url('../fonts/inconsolata-hellenic.ttf');
+}
+@font-face {
+    font-family: XITS;
+    src: url('../fonts/xits-math.otf');
+}
+@font-face {
+    font-family: XITS;
+    font-style: italic;
+    src: url('../fonts/xits-italic.otf');
+}
+
+body { margin: 5px; }
+input { font-family: Inconsolata-Hellenic; }
+pre { font-family: Inconsolata-Hellenic; }
+
+/* http://jsfiddle.net/Wc4xt/1052/ */
+.panel-heading a:after {
+    font-family:'Glyphicons Halflings';
+    content:"\e114";
+    float: left;
+    color: grey;
+}
+.panel-heading a.collapsed:after {
+    content:"\e080";
+}
+
+#expression-group {
+    display: flex;
+    width: 100%;
+}
+#expression-input {
+    display: inline-block;
+    max-width: 500px;
+    min-width: 150px;
+    flex: 1 1 400px;
+}
+#type-button {
+    display: inline;
+    min-width: auto;
+    flex: 0 0 auto;
+}
+#sample-selectpicker {
+    display: inline;
+    min-width: 220px;
+    flex: 0 0 auto;
+}

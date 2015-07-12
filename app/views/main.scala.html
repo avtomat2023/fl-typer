@@ -7,61 +7,26 @@
     <!-- stylesheet: https://bootswatch.com/cerulean/ -->
     <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/bootstrap.min.css")">
     <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/bootstrap-select.min.css")">
+    <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/main.css")">
     <script src="https://code.jquery.com/jquery-2.0.2.min.js"></script>
     <script src="@routes.Assets.versioned("javascripts/jquery.caret-1.5.2.min.js")"></script>
-    <script src="@routes.Assets.versioned("javascripts/bootstrap-select.min.js")"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script src="@routes.Assets.versioned("javascripts/bootstrap-select.js")"></script>
     <script src="@routes.Assets.versioned("javascripts/typing.js")"></script>
-    <style>
-     body { margin: 5px; }
-     input { font-family: Inconsolata-Hellenic; }
-     pre { font-family: Inconsolata-Hellenic; }
-     /* http://jsfiddle.net/Wc4xt/1052/ */
-     .panel-heading a:after {
-         font-family:'Glyphicons Halflings';
-         content:"\e114";
-         float: left;
-         color: grey;
-     }
-     .panel-heading a.collapsed:after {
-         content:"\e080";
-     }
-     @@font-face {
-         font-family: XITS;
-         src: url('@routes.Assets.versioned("fonts/xits-math.otf")');
-     }
-     @@font-face {
-         font-family: XITS;
-         font-style: italic;
-         src: url('@routes.Assets.versioned("fonts/xits-italic.otf")');
-     }
-     @@font-face {
-         font-family: Inconsolata-Hellenic;
-         src: url('@routes.Assets.versioned("fonts/inconsolata-hellenic.ttf")');
-     }
-     /*
-     h1 {
-         font-family: XITS;
-         font-size: 30;
-     }
-     */
-    </style>
   </head>
 
   <body>
     <h1>FL Typer</h1>
 
-    <div style="width: 100%">
-      <div style="display: inline-block">
-        <input id="expression" name="expression" type="text" class="form-control" autofocus style="width: 500px">
-      </div>
-        <button id="type-button" class="btn btn-primary" type="submit">Type It!</button>
-        <select id="sample-select" class="selectpicker">
-          <option>-- Sample Programs --</option>
-          <option>fst</option>
-          <option>snd</option>
-          <option>List Construction</option>
-        </select>
+    <div id="expression-group">
+      <input id="expression-input" type="text" class="form-control" autofocus>
+      <button id="type-button" class="btn btn-primary">Type It!</button>
+      <select id="sample-selectpicker" class="selectpicker">
+        <option>-- Sample Programs --</option>
+        <option>fst</option>
+        <option>snd</option>
+        <option>List Construction</option>
+      </select>
     </div>
     <p>Backslashes and yen marks are treated as lambdas.</p>
 

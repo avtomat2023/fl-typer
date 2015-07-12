@@ -193,7 +193,7 @@ jQuery(function($) {
     // 式を入力するテキストボックスで
     // バックスラッシュと円マークをラムダに変換する処理
     // および、Enterキーが押されたら型付けボタンを押す処理
-    $('#expression').keypress(function(event) {
+    $('#expression-input').keypress(function(event) {
         var enter = 13;
         var backslash = '\\'.charCodeAt(0);
         var yen = '¥'.charCodeAt(0);
@@ -216,10 +216,10 @@ jQuery(function($) {
         'snd': 'λx.y.y',
         'List Construction': '1::2::3::4::nil'
     }
-    $('#sample-select').on('change', function() {
+    $('#sample-selectpicker').on('change', function() {
         var key = $(this).find("option:selected").val();
         if (key in samplePrograms)
-            $('#expression').val(samplePrograms[key]);
+            $('#expression-input').val(samplePrograms[key]);
     });
 
     // 型付けボタンが押された時のAjax通信処理
@@ -227,7 +227,7 @@ jQuery(function($) {
     $('#type-button').click(function(event) {
         $.ajax({
             url: '/typing',
-            data: { expression: $('#expression').val() },
+            data: { expression: $('#expression-input').val() },
             timeout: 10000,
             dataType: 'json',
 
