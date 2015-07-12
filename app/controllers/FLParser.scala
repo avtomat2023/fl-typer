@@ -10,8 +10,8 @@ object FLParser extends RegexParsers {
   def parse(input: String) = parseAll(expr, input)
   def expr: Parser[Ast] = consExpr
 
-  def consExpr: Parser[Ast] = rep1sep(orExpr, "::") ^^ { results =>
-    results.reduceRight(Cons(_,_))
+  def consExpr: Parser[Ast] = rep1sep(orExpr, "::") ^^ {
+    _.reduceRight(Cons(_,_))
   }
 
   // 左結合の二項演算子を使った式をパース
@@ -45,8 +45,14 @@ object FLParser extends RegexParsers {
   def wordWith(pred: String => Boolean): Parser[String] =
     wordWith(pred, "`" + _ + "' does not satisfy the required condition")
   // 与えられた文字列群のどれか一つに一致するword
-  def word(expecteds: String*): Parser[String] = wordWith(expecteds.contains(_))
+  def word(expectedFirst: String, expectedRest: String*): Parser[String] = {
+    val expecteds = expectedFirst :: expectedRest.toList
+    wordWith(expecteds.contains(_),
+             expecteds.reduceLeft(_+" or "+_) + " expected but `" +
+             _ + "' found")
+  }
 
+  // parserを用いて演算子をパースし、opを返す
   def operator(parser: Parser[String], op: Const): Parser[Const] =
     parser ^^ { _ => op }
 
@@ -56,8 +62,8 @@ object FLParser extends RegexParsers {
     leftBinOpExpr(operator(word("and"), Const.and), comparisonExpr)
   def comparisonExpr: Parser[Ast] = {
     val op = operator("<=", Const.le) | operator("<", Const.lt) |
-             operator("=", Const.intEq) | operator(">=", Const.ge) |
-             operator(">", Const.gt)
+             operator("=", Const.intEq) |
+             operator(">=", Const.ge) | operator(">", Const.gt)
     leftBinOpExpr(op, addsubExpr)
   }
   def addsubExpr: Parser[Ast] = {
@@ -89,20 +95,26 @@ object FLParser extends RegexParsers {
 
   val reservedWords = Set("true", "false", "and", "or", "not", "nil",
                           "if", "then", "else", "let", "in", "case", "of")
-  def variable: Parser[Var] = wordWith(!reservedWords(_)) ^^ { Var(_) }
+  def variable: Parser[Var] = {
+    def err(found: String) =
+      "`" + found + "' is a reserved word, not available for variable name"
+    wordWith(!reservedWords(_), err) ^^ { Var(_) }
+  }
 
-  def nil: Parser[Nil.type] = "nil" ^^ { _ => Nil }
+  def nil: Parser[Nil.type] = word("nil") ^^ { _ => Nil }
   def abs: Parser[Abs] = """\\|¥|λ""".r~>rep1(variable<~".")~expr ^^ {
     case vs~body => vs.init.foldRight(Abs(vs.last, body)){ Abs(_,_) }
   }
-  def ifExpr: Parser[If] = "if"~>expr~"then"~expr~"else"~expr ^^ {
-    case cond~_~thenExpr~_~elseExpr => If(cond, thenExpr, elseExpr)
-  }
-  def letExpr: Parser[Let] = "let"~>variable~"="~expr~"in"~expr ^^ {
-    case variable~_~binding~_~body => Let(variable, binding, body)
-  }
+  def ifExpr: Parser[If] =
+    word("if")~>expr~word("then")~expr~word("else")~expr ^^ {
+      case cond~_~thenExpr~_~elseExpr => If(cond, thenExpr, elseExpr)
+    }
+  def letExpr: Parser[Let] =
+    word("let")~>variable~"="~expr~word("in")~expr ^^ {
+      case variable~_~binding~_~body => Let(variable, binding, body)
+    }
   def caseExpr: Parser[Case] =
-    "case"~>expr~"of" ~ opt("|")~"nil"~"->"~expr ~
+    word("case")~>expr~word("of") ~ opt("|")~word("nil")~"->"~expr ~
     "|"~variable~"::"~variable~"->"~expr ^^ {
       case e~_~_~_~_~nilExpr~_~v1~_~v2~_~consExpr =>
         Case(e, nilExpr, v1, v2, consExpr)

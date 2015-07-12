@@ -12,21 +12,17 @@ class Application extends Controller {
   }
 
   def typing(expr: String) = Action { implicit request =>
-    def noSuccess(msg: String, next: FLParser.Input) =
-      Ok(JsObject(Seq(
-        "parsed" -> JsBoolean(false),
-        "error" -> JsString("character " + next.pos.column + ": " + msg + "\n" +
-                            next.pos.longString)
-      )))
-
     FLParser.parse(expr) match {
       case FLParser.Success(ast, _) => Ok(JsObject(Seq(
         "parsed" -> JsBoolean(true),
         "ast" -> ast.toVisualAst.toJsObject,
         "expr" -> ast.toVisualExpr.toJsObject
       )))
-      case FLParser.Failure(msg, next) => noSuccess(msg, next)
-      case FLParser.Error(msg, next) => noSuccess(msg, next)
+      case FLParser.NoSuccess(msg, next) => Ok(JsObject(Seq(
+        "parsed" -> JsBoolean(false),
+        "error" -> JsString("character " + next.pos.column + ": " + msg + "\n" +
+                            next.pos.longString)
+      )))
     }
   }
 }
