@@ -2,6 +2,7 @@ package ast
 
 import play.api.libs.json.JsObject
 
+import fltype._
 import visual._
 
 sealed trait Ast {
@@ -18,7 +19,7 @@ object Ast {
     Tree(node, children.map(_.toVisualAst): _*)
 }
 
-case class Const(value: String) extends Ast {
+case class Const(value: String, fltype: FLType) extends Ast {
   def toVisualAst = Richtext(value)
   def toVisualExpr = Richtext(value)
   def isRightOpen = false
@@ -84,6 +85,7 @@ case class If(cond: Ast, thenExpr: Ast, elseExpr: Ast) extends Ast {
       Richtext(" else ") + elseExpr.toVisualExpr
   def isRightOpen = true
 }
+
 case class Let(variable: Var, binding: Ast, body: Ast) extends Ast {
   def toVisualAst = Ast.visualAst("let", variable, binding, body)
   def toVisualExpr =
@@ -92,6 +94,7 @@ case class Let(variable: Var, binding: Ast, body: Ast) extends Ast {
       Richtext(" in ") + body.toVisualExpr
   def isRightOpen = true
 }
+
 case class Case(caseExpr: Ast, nilExpr: Ast,
                 carPat: Var, cdrPat: Var, consExpr: Ast) extends Ast {
   def toVisualAst = {
@@ -109,28 +112,28 @@ case class Case(caseExpr: Ast, nilExpr: Ast,
 }
 
 object Const {
-  val add = Const("+")
-  val sub = Const("-")
-  val mul = Const("*")
-  val div = Const("/")
-  val uminus = Const("-")
-  val uplus = Const("+")
-  val and = Const("and")
-  val or = Const("or")
-  val not = Const("not")
-  val lt = Const("<")
-  val le = Const("<=")
-  val intEq = Const("=")
-  val ge = Const(">=")
-  val gt = Const(">")
+  val add = Const("(+)", FLInt --> FLInt --> FLInt)
+  val sub = Const("(-)", FLInt --> FLInt --> FLInt)
+  val mul = Const("(×)", FLInt --> FLInt --> FLInt)
+  val div = Const("(÷)", FLInt --> FLInt --> FLInt)
+  val uminus = Const("(minus)", FLInt --> FLInt)
+  val uplus = Const("(plus)", FLInt --> FLInt)
+  val and = Const("(and)", FLBool --> FLBool --> FLBool)
+  val or = Const("(or)", FLBool --> FLBool --> FLBool)
+  val not = Const("(not)", FLBool --> FLBool)
+  val lt = Const("(<)", FLInt --> FLInt --> FLBool)
+  val le = Const("(≤)", FLInt --> FLInt --> FLBool)
+  val intEq = Const("(=)", FLInt --> FLInt --> FLBool)
+  val ge = Const("(≥)", FLInt --> FLInt --> FLBool)
+  val gt = Const("(>)", FLInt --> FLInt --> FLBool)
 }
 
 object Implicits {
   import scala.language.implicitConversions
   import scala.collection.immutable
 
-  implicit def intToConst(x: Int): Const = Const(x.toString)
-  implicit def boolToConst(x: Boolean): Const = Const(x.toString)
+  implicit def intToConst(x: Int): Const = Const(x.toString, FLInt)
+  implicit def boolToConst(x: Boolean): Const = Const(x.toString, FLBool)
   implicit def strToVar(x: String): Var = Var(x)
   implicit def listToAst(x: List[Ast]): Ast = x match {
     case immutable.Nil => Nil

@@ -1,7 +1,9 @@
 package parsing
 
-import ast._
 import scala.util.parsing.combinator.RegexParsers
+
+import ast._
+import fltype._
 
 object FLParser extends RegexParsers {
   // 入力文字列全体を一つの式だと思ってパース
@@ -13,12 +15,12 @@ object FLParser extends RegexParsers {
   }
 
   // 左結合の二項演算子を使った式をパース
-  def leftBinOpExpr(operator: Parser[String],
+  def leftBinOpExpr(operator: Parser[Const],
                     nextLevel: Parser[Ast]): Parser[Ast] =
     nextLevel~rep(operator~nextLevel) ^^ { case first~rest =>
       rest.foldLeft(first){ (tree, node) =>
         node match {
-          case op~expr => App(App(Const(op), tree), expr)
+          case op~expr => App(App(op, tree), expr)
         }
       }
     }
@@ -45,27 +47,45 @@ object FLParser extends RegexParsers {
   // 与えられた文字列群のどれか一つに一致するword
   def word(expecteds: String*): Parser[String] = wordWith(expecteds.contains(_))
 
-  def orExpr: Parser[Ast] = leftBinOpExpr(word("or"), andExpr)
-  def andExpr: Parser[Ast] = leftBinOpExpr(word("and"), comparisonExpr)
-  def comparisonExpr: Parser[Ast] = leftBinOpExpr("<=|<|=|>=|>".r, addsubExpr)
-  def addsubExpr: Parser[Ast] = leftBinOpExpr("""\+|-""".r, muldivExpr)
-  def muldivExpr: Parser[Ast] = leftBinOpExpr("""\*|/""".r, prefixExpr)
+  def operator(parser: Parser[String], op: Const): Parser[Const] =
+    parser ^^ { _ => op }
 
-  def prefixExpr: Parser[Ast] = opt("+" | "-" | word("not")) ~ appExpr ^^ {
-      case prefix~expr => prefix match {
-        case Some(op) => App(Const(op), expr)
-        case None => expr
-      }
+  def orExpr: Parser[Ast] =
+    leftBinOpExpr(operator(word("or"), Const.or), andExpr)
+  def andExpr: Parser[Ast] =
+    leftBinOpExpr(operator(word("and"), Const.and), comparisonExpr)
+  def comparisonExpr: Parser[Ast] = {
+    val op = operator("<=", Const.le) | operator("<", Const.lt) |
+             operator("=", Const.intEq) | operator(">=", Const.ge) |
+             operator(">", Const.gt)
+    leftBinOpExpr(op, addsubExpr)
+  }
+  def addsubExpr: Parser[Ast] = {
+    val op = operator("+", Const.add) | operator("-", Const.sub)
+    leftBinOpExpr(op, muldivExpr)
+  }
+  def muldivExpr: Parser[Ast] = {
+    val op = operator("*", Const.mul) | operator("/", Const.div)
+    leftBinOpExpr(op, prefixExpr)
+  }
+
+  def prefixExpr: Parser[Ast] = {
+    val op = operator("+", Const.uplus) | operator("-", Const.uminus) |
+             operator(word("not"), Const.not)
+    opt(op) ~ appExpr ^^ {
+      case Some(op)~expr => App(op, expr)
+      case None~expr => expr
     }
+  }
 
   def appExpr: Parser[Ast] = rep1(parenExpr) ^^ { _.reduceLeft(App(_,_)) }
   def parenExpr: Parser[Ast] = nonLeftRecursiveExpr | "("~>expr<~")"
 
   def nonLeftRecursiveExpr: Parser[Ast] =
-    const | variable | nil | abs | ifExpr | letExpr | caseExpr
+    intConst | boolConst | variable | nil | abs | ifExpr | letExpr | caseExpr
 
-  def const: Parser[Ast] =
-    ("""[0-9]+""".r | word("true", "false")) ^^ { Const(_) }
+  def intConst: Parser[Const] = """[0-9]+""".r ^^ { Const(_, FLInt) }
+  def boolConst: Parser[Const] = word("true", "false") ^^ { Const(_, FLBool) }
 
   val reservedWords = Set("true", "false", "and", "or", "not", "nil",
                           "if", "then", "else", "let", "in", "case", "of")
