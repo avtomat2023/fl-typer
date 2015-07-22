@@ -1,4 +1,5 @@
 import parsing.FLParser
+import fltype._
 
 import org.scalatest.FunSuite
 
@@ -9,7 +10,7 @@ class ParsingTest extends FunSuite {
   import ast.Const._
 
   test("'true'") {
-    assertResult(Const("true")) { FLParser.parse("true").get }
+    assertResult(Const(true)) { FLParser.parse("true").get }
   }
 
   test("lambda abstraction") {

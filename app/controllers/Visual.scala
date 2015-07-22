@@ -3,9 +3,9 @@ package visual
 import play.api.libs.json._
 
 sealed trait TextStyle
-case class Upright() extends TextStyle
-case class Italic() extends TextStyle
-case class Subscript() extends TextStyle
+case object Upright extends TextStyle
+case object Italic extends TextStyle
+case object Subscript extends TextStyle
 
 case class RichtextFragment(text: String, style: TextStyle)
 
@@ -19,8 +19,8 @@ case class Richtext(fragments: Vector[RichtextFragment]) extends Element {
     "contents" -> JsArray(fragments.map{ case RichtextFragment(text, style) =>
       JsObject(Seq(
         "text" -> JsString(text),
-        "italic" -> JsBoolean(style == Italic()),
-        "subscript" -> JsBoolean(style == Subscript())
+        "italic" -> JsBoolean(style == Italic),
+        "subscript" -> JsBoolean(style == Subscript)
       ))
     })
   ))
@@ -29,7 +29,7 @@ case class Richtext(fragments: Vector[RichtextFragment]) extends Element {
 }
 
 object Richtext {
-  def apply(text: String, style: TextStyle = Upright()): Richtext =
+  def apply(text: String, style: TextStyle = Upright): Richtext =
     Richtext(Vector(RichtextFragment(text, style)))
 }
 
@@ -44,4 +44,14 @@ case class Tree(node: Richtext, children: Element*) extends Element {
 object Tree {
   def apply(node: String, children: Element*): Tree =
     Tree(Richtext(node), children: _*)
+}
+
+case class Diagram(node: Richtext, parents: Seq[Diagram],
+                   unificators: Seq[Richtext]) extends Element {
+  def toJsObject = JsObject(Seq(
+    "kind" -> JsString("diagram"),
+    "node" -> node.toJsObject,
+    "parents" -> JsArray(parents.map(_.toJsObject)),
+    "unificators" -> JsArray(unificators.map(_.toJsObject))
+  ))
 }

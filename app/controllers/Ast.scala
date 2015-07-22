@@ -26,8 +26,8 @@ case class Const(value: String, fltype: FLType) extends Ast {
 }
 
 case class Var(name: String) extends Ast {
-  def toVisualAst = Richtext(name, Italic())
-  def toVisualExpr = Richtext(name, Italic())
+  def toVisualAst = Richtext(name, Italic)
+  def toVisualExpr = Richtext(name, Italic)
   def isRightOpen = false
 }
 
@@ -95,16 +95,16 @@ case class Let(variable: Var, binding: Ast, body: Ast) extends Ast {
   def isRightOpen = true
 }
 
-case class Case(caseExpr: Ast, nilExpr: Ast,
+case class Case(selector: Ast, nilExpr: Ast,
                 carPat: Var, cdrPat: Var, consExpr: Ast) extends Ast {
   def toVisualAst = {
     val nilAlt = Ast.visualAst("nil", nilExpr)
     val consPat = carPat.toVisualExpr + Richtext("::") + cdrPat.toVisualExpr
     val consAlt = Tree(consPat, consExpr.toVisualAst)
-    Tree("case", caseExpr.toVisualAst, nilAlt, consAlt)
+    Tree("case", selector.toVisualAst, nilAlt, consAlt)
   }
   def toVisualExpr =
-    Richtext("case ") + caseExpr.toVisualExpr +
+    Richtext("case ") + selector.toVisualExpr +
       Richtext(" of nil → ") + nilExpr.toVisualExpr + Richtext(" | ") +
       carPat.toVisualExpr + Richtext("::") + cdrPat.toVisualExpr +
       Richtext(" → ") + consExpr.toVisualExpr
@@ -112,20 +112,23 @@ case class Case(caseExpr: Ast, nilExpr: Ast,
 }
 
 object Const {
-  val add = Const("(+)", FLInt --> FLInt --> FLInt)
-  val sub = Const("(-)", FLInt --> FLInt --> FLInt)
-  val mul = Const("(×)", FLInt --> FLInt --> FLInt)
-  val div = Const("(÷)", FLInt --> FLInt --> FLInt)
-  val uminus = Const("(minus)", FLInt --> FLInt)
-  val uplus = Const("(plus)", FLInt --> FLInt)
-  val and = Const("(and)", FLBool --> FLBool --> FLBool)
-  val or = Const("(or)", FLBool --> FLBool --> FLBool)
-  val not = Const("(not)", FLBool --> FLBool)
-  val lt = Const("(<)", FLInt --> FLInt --> FLBool)
-  val le = Const("(≤)", FLInt --> FLInt --> FLBool)
-  val intEq = Const("(=)", FLInt --> FLInt --> FLBool)
-  val ge = Const("(≥)", FLInt --> FLInt --> FLBool)
-  val gt = Const("(>)", FLInt --> FLInt --> FLBool)
+  def apply(x: Int): Const = Const(x.toString, FLInt)
+  def apply(x: Boolean): Const = Const(x.toString, FLBool)
+
+  val add = Const("(+)", FLInt ->: FLInt ->: FLInt)
+  val sub = Const("(-)", FLInt ->: FLInt ->: FLInt)
+  val mul = Const("(×)", FLInt ->: FLInt ->: FLInt)
+  val div = Const("(÷)", FLInt ->: FLInt ->: FLInt)
+  val uminus = Const("(minus)", FLInt ->: FLInt)
+  val uplus = Const("(plus)", FLInt ->: FLInt)
+  val and = Const("(and)", FLBool ->: FLBool ->: FLBool)
+  val or = Const("(or)", FLBool ->: FLBool ->: FLBool)
+  val not = Const("(not)", FLBool ->: FLBool)
+  val lt = Const("(<)", FLInt ->: FLInt ->: FLBool)
+  val le = Const("(≤)", FLInt ->: FLInt ->: FLBool)
+  val intEq = Const("(=)", FLInt ->: FLInt ->: FLBool)
+  val ge = Const("(≥)", FLInt ->: FLInt ->: FLBool)
+  val gt = Const("(>)", FLInt ->: FLInt ->: FLBool)
 }
 
 object Implicits {

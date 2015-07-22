@@ -116,7 +116,7 @@ object FLParser extends RegexParsers {
   def caseExpr: Parser[Case] =
     word("case")~>expr~word("of") ~ opt("|")~word("nil")~"->"~expr ~
     "|"~variable~"::"~variable~"->"~expr ^^ {
-      case e~_~_~_~_~nilExpr~_~v1~_~v2~_~consExpr =>
-        Case(e, nilExpr, v1, v2, consExpr)
+      case sel~_~_~_~_~nilExpr~_~v1~_~v2~_~consExpr =>
+        Case(sel, nilExpr, v1, v2, consExpr)
     }
 }
