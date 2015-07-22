@@ -1,18 +1,29 @@
 jQuery(function($) {
+    "use strict";
+
     var marginOfSubtrees = 10;
+    var marginOfExpressions = 30;
+    var marginOfDiagramAndEquations = 20;
+    // 木構造の枝の高さ
     var edgeHeight = 20;
+    var lineWidth = 2;
     var svgMargin = 10;
     var svgNS = "http://www.w3.org/2000/svg";
+    // 図中のテキストの上下間隔（上下それぞれ5ずつ）
     var textVerticalMargin = 5;
     var textSize = 30;
+    var textYOffset = 23;
     var subscriptSize = 15;
     var subscriptYOffset = 5;
+    var smallTextSize = 20;
+    var ruleMargin = 5;
+    // 型と=記号とのマージン
+    var equationMargin = 5;
 
-    // kindが"richtext"であるJSONを描画した時のサイズを計算する
-    // JSON自体ではなくcontentsを受け取る
-    function getRichtextSize(contents) {
+    // リッチテキストを描画した時のサイズを計算する
+    function getRichtextSize(richtext) {
         // ダミーのsvg要素に描画（g要素を追加）する
-        var g = richtextToSvgG(contents, 'left', 0, 0);
+        var g = richtextToSvgG(richtext, 'start', 0, 0);
         var svg = $('#dummy-svg').get(0);
         svg.appendChild(g);
         // ダミーのsvg要素を表示
@@ -32,11 +43,10 @@ jQuery(function($) {
         return size;
     }
 
-    // kindが"richtext"であるJSONをSVGのg要素に変換する
-    // JSON自体ではなくcontentsを受け取る
-    // anchorは左右のアラインメントで、"left", "middle", "right"で指定
+    // リッチテキストをSVGのg要素に変換する
+    // anchorは左右のアラインメントで、"start", "middle", "end"で指定
     // x, yは表示位置 xはアラインメントに従う yはテキスト上端の位置
-    function richtextToSvgG(contents, anchor, x, y) {
+    function richtextToSvgG(richtext, anchor, x, y) {
         var g = document.createElementNS(svgNS, 'g');
         g.setAttributeNS(null, 'font-family', 'XITS');
         g.setAttributeNS(null, 'font-size', textSize.toString());
@@ -45,31 +55,40 @@ jQuery(function($) {
         var text = document.createElementNS(svgNS, 'text');
         text.setAttributeNS(null, 'text-anchor', anchor);
         text.setAttributeNS(null, 'x', x.toString());
-        text.setAttributeNS(null, 'y', y.toString());
+        // 下付き文字については、dominant-baselineを指定するより、
+        // y座標を変えたほうがブラウザ間の見え方の差が少ない
+        text.setAttributeNS(null, 'y', (y + textYOffset).toString());
 
         var dy = 0;
-        for (var i in contents) {
+        for (var i in richtext) {
             var tspan = document.createElementNS(svgNS, 'tspan');
-            // y座標を上端だと解釈するよう、基底線を指定
-            tspan.setAttributeNS(null, 'dominant-baseline', 'text-before-edge');
-            // 下付き文字の処理
+            // 下付き・垂直中央寄せ文字の処理
             var subscripted = false;
-            if (contents[i].subscript) {
+            var middled = false
+            if (richtext[i].style == "subscript") {
                 subscripted = true;
                 tspan.setAttributeNS(null, 'font-size', subscriptSize.toString());
                 dy += subscriptYOffset;
+            } else if (richtext[i].style == "middle") {
+                middled = true;
+                tspan.setAttributeNS(null, 'font-size', smallTextSize.toString());
+                tspan.setAttributeNS(null, 'dominant-baseline', 'middle');
+                dy -= textYOffset;
             }
             if (dy != 0)
                 tspan.setAttributeNS(null, 'dy', dy.toString());
             if (subscripted)
                 dy = -subscriptYOffset;
+            else if (middled)
+                dy = textYOffset;
             else
                 dy = 0;
+
             // 斜体の処理
-            if (contents[i].italic)
+            if (richtext[i].style == "italic")
                 tspan.setAttributeNS(null, 'font-style', 'italic');
 
-            var textNode = document.createTextNode(contents[i].text);
+            var textNode = document.createTextNode(richtext[i].text);
             tspan.appendChild(textNode);
             text.appendChild(tspan);
         }
@@ -82,7 +101,7 @@ jQuery(function($) {
     function createLineSvgG(x1, y1, x2, y2) {
         var g = document.createElementNS(svgNS, 'g');
         g.setAttributeNS(null, 'stroke', 'black');
-        g.setAttributeNS(null, 'stroke-width', '2');
+        g.setAttributeNS(null, 'stroke-width', lineWidth.toString());
         g.setAttributeNS(null, 'stroke-linecap', 'round');
 
         var line = document.createElementNS(svgNS, 'line');
@@ -105,16 +124,18 @@ jQuery(function($) {
             '</svg>';
     }
 
-    // サーバから受け取ったASTに、サイズ情報を付加する
-    function attachSize(ast) {
-        if (ast.kind == "richtext") {
-            var size = getRichtextSize(ast.contents);
-            ast.width = size.width;
-            ast.height = size.height + textVerticalMargin*2;
-        } else { // kind == "tree"
-            attachSize(ast.node)
+    // ASTにサイズ情報(width, height, nodeWidth, nodeHeightフィールド)を付加する
+    function attachSizeToAst(ast) {
+        var nodeSize = getRichtextSize(ast.node);
+        ast.nodeWidth = nodeSize.width;
+        ast.nodeHeight = nodeSize.height + textVerticalMargin*2;
+
+        if (ast.children.length == 0) { // leaf
+            ast.width = ast.nodeWidth;
+            ast.height = ast.nodeHeight;
+        } else { // has children
             for (var i in ast.children)
-                attachSize(ast.children[i])
+                attachSizeToAst(ast.children[i])
 
             var widthOfChildren = 0
             for (var i in ast.children)
@@ -135,44 +156,48 @@ jQuery(function($) {
                 x += ast.children[i].tree.width + marginOfSubtrees;
             }
 
-            ast.width = Math.max(ast.node.width, widthOfChildren);
-            ast.height = ast.node.height + edgeHeight + heightOfChildren;
+            ast.width = Math.max(ast.nodeWidth, widthOfChildren);
+            ast.height = ast.nodeHeight + edgeHeight + heightOfChildren;
         }
     }
 
     // サーバから受け取った式を描画
     function drawExpr(expr) {
-        var size = getRichtextSize(expr.contents);
+        var size = getRichtextSize(expr);
         var svg = createSvgHtml('expr-svg', size.width, size.height);
         $('#expr-panel').html(svg);
-        var g = richtextToSvgG(expr.contents, 'left', svgMargin, svgMargin);
+        var g = richtextToSvgG(expr, 'start', svgMargin, svgMargin);
         $('#expr-svg').get(0).appendChild(g);
+    }
+
+    function drawPrincipalType(type) {
+        var size = getRichtextSize(type);
+        var svg = createSvgHtml('type-svg', size.width, size.height);
+        $('#type-panel').html(svg);
+        var g = richtextToSvgG(type, 'start', svgMargin, svgMargin);
+        $('#type-svg').get(0).appendChild(g);
     }
 
     // サイズ情報の付いたASTをsvg要素に描画
     // xは中央、yは上端
     function drawSizedAst(svg, ast, x, y) {
-        if (ast.kind == "richtext") {
-            svg.appendChild(richtextToSvgG(ast.contents, 'middle',
-                                           x, y + textVerticalMargin));
-        } else { // kind == "tree"
-            drawSizedAst(svg, ast.node, x, y);
-            var botOfHead = y + ast.node.height;
-            var nextY = botOfHead + edgeHeight;
-            for (var i in ast.children) {
-                var node = ast.children[i];
-                var nextX = x + node.relativeX + node.tree.width/2;
-                drawSizedAst(svg, node.tree, nextX, nextY);
+        svg.appendChild(richtextToSvgG(ast.node, 'middle',
+                                       x, y + textVerticalMargin));
+        var botOfHead = y + ast.nodeHeight;
+        var nextY = botOfHead + edgeHeight;
+        for (var i in ast.children) {
+            var child = ast.children[i];
+            var nextX = x + child.relativeX + child.tree.width/2;
+            drawSizedAst(svg, child.tree, nextX, nextY);
 
-                svg.appendChild(createLineSvgG(x, botOfHead, nextX, nextY));
-            }
+            svg.appendChild(createLineSvgG(x, botOfHead, nextX, nextY));
         }
     }
 
     // サーバから受け取ったASTを描画
     // astは破壊的に変更されるため、再利用できない
     function drawAst(ast) {
-        attachSize(ast);
+        attachSizeToAst(ast);
         // 描画先であるsvg要素を作成
         var svg = createSvgHtml("ast-svg", ast.width, ast.height);
         $('#ast-panel').html(svg);
@@ -190,15 +215,154 @@ jQuery(function($) {
         $('#dummy-svg').get(0).setAttribute('display', 'none');
     });
 
+    // 証明図にサイズ情報
+    // (width, height, nodeWidth, nodeHeight, ruleWidthフィールド)を付加する
+    function attachSizeToProofDiagram(diagram) {
+        var nodeSize = getRichtextSize(diagram.typedExpr);
+        diagram.nodeWidth = nodeSize.width;
+        diagram.nodeHeight = nodeSize.height + textVerticalMargin*2;
+        var ruleSize = getRichtextSize(diagram.rule);
+        diagram.ruleWidth = ruleSize.width;
+
+        if (diagram.parents.length == 0) {
+            diagram.width = diagram.nodeWidth + ruleMargin + ruleSize.width;
+            diagram.height = diagram.nodeHeight + ruleSize.height/2;
+        } else {
+            for (var i in diagram.parents)
+                attachSizeToProofDiagram(diagram.parents[i])
+
+            var widthOfParents = 0;
+            for (var i in diagram.parents)
+                widthOfParents += diagram.parents[i].width;
+            widthOfParents += marginOfExpressions * (diagram.parents.length-1);
+
+            var heightOfParents = 0;
+            for (var i in diagram.parents)
+                if (heightOfParents < diagram.parents[i].height)
+                    heightOfParents = diagram.parents[i].height;
+
+            var x = -widthOfParents / 2;
+            for (var i in diagram.parents) {
+                diagram.parents[i] = {
+                    relativeX: x, // 左端
+                    diagram: diagram.parents[i]
+                }
+                x += diagram.parents[i].diagram.width + marginOfExpressions;
+            }
+
+            var w = diagram.nodeWidth + ruleMargin + ruleSize.width;
+            diagram.width = Math.max(w, widthOfParents);
+            diagram.height = diagram.nodeHeight + lineWidth + heightOfParents;
+        }
+    }
+
+    // サイズ情報の付いた証明図をsvg要素に描画
+    // xは中央、yは上端
+    function drawSizedProofDiagram(svg, diagram, x, y) {
+        var left = x - (diagram.nodeWidth + ruleMargin + diagram.ruleWidth) / 2;
+        svg.appendChild(richtextToSvgG(diagram.typedExpr, 'start',
+                                       left, y + textVerticalMargin));
+        var right = left + diagram.nodeWidth;
+        for (var i in diagram.parents) {
+            var parent = diagram.parents[i];
+            var nextY = y - lineWidth - parent.diagram.nodeHeight;
+            var nextX = x + parent.relativeX + parent.diagram.width/2;
+            drawSizedProofDiagram(svg, parent.diagram, nextX, nextY);
+
+            var newLeft = nextX - (parent.diagram.nodeWidth + ruleMargin +
+                                   parent.diagram.ruleWidth) / 2
+            var newRight = newLeft + parent.diagram.nodeWidth
+            left = Math.min(left, newLeft)
+            right = Math.max(right, newRight)
+        }
+        var barY = y - lineWidth/2;
+        svg.appendChild(createLineSvgG(left, barY, right, barY));
+        svg.appendChild(richtextToSvgG(diagram.rule, 'start',
+                                       right + ruleMargin, barY));
+    }
+
+    // 証明図全体を描画
+    // diagramは破壊的に変更されるため、再利用できない
+    function drawProofDiagram(diagram, unification) {
+        attachSizeToProofDiagram(diagram);
+        attachSizeToUnification(unification);
+
+        // 描画先であるsvg要素を作成
+        var uWidth = 0;
+        for (var i in unification) {
+            if (uWidth < unification[i].width)
+                uWidth =unification[i].width;
+        }
+        var uHeight = 0;
+        for (var i in unification) {
+            uHeight += unification[i].height;
+        }
+        var w = Math.max(diagram.width, uWidth) + svgMargin*2;
+        var h = diagram.height + marginOfDiagramAndEquations +
+                uHeight + svgMargin*2;
+        var svgHtml = createSvgHtml("inference-svg", w, h);
+        $('#inference-panel').html(svgHtml);
+
+        // 描画
+        var originX = svgMargin + diagram.width/2;
+        var originY = svgMargin + diagram.height - diagram.nodeHeight;
+        drawSizedProofDiagram($('#inference-svg').get(0), diagram, originX, originY);
+        originX = svgMargin;
+        for (var i in unification) {
+            var x = unification[i].lhsWidth + unification[i].eqWidth/2 + svgMargin;
+            if (originX < x)
+                originX = x;
+        }
+        originY = svgMargin + diagram.height + marginOfDiagramAndEquations;
+        drawUnification($('#inference-svg').get(0), unification, originX, originY)
+    }
+
+    function attachSizeToEquation(equation) {
+        var lhsSize = getRichtextSize(equation.lhs);
+        var eqSize = getRichtextSize(equation.eq);
+        var rhsSize = getRichtextSize(equation.rhs);
+        equation.lhsWidth = lhsSize.width;
+        equation.eqWidth = eqSize.width + equationMargin*2;
+        equation.rhsWidth = rhsSize.width;
+        equation.width = equation.lhsWidth + equation.eqWidth ; equation.rhsWidth;
+        equation.height = Math.max(lhsSize.height, eqSize.height, rhsSize.height);
+        console.log(equation.height);
+    }
+
+    function attachSizeToUnification(unification) {
+        for (var i in unification)
+            attachSizeToEquation(unification[i]);
+    }
+
+    function drawEquation(svg, equation, eqCenterX, y) {
+        var eqSize = getRichtextSize(equation.eq)
+        var offset = eqSize.width/2 + equationMargin;
+        var lhsG = richtextToSvgG(equation.lhs, "end", eqCenterX - offset, y)
+        svg.appendChild(lhsG)
+        var eqG = richtextToSvgG(equation.eq, "middle", eqCenterX, y)
+        svg.appendChild(eqG)
+        var rhsG = richtextToSvgG(equation.rhs, "start", eqCenterX + offset, y)
+        svg.appendChild(rhsG)
+    }
+
+    function drawUnification(svg, unification, eqCenterX, y) {
+        for (var i in unification) {
+            drawEquation(svg, unification[i], eqCenterX, y);
+            y += unification[i].height;
+        }
+    }
+
     // 式を入力するテキストボックスで
     // バックスラッシュと円マークをラムダに変換する処理
     // および、Enterキーが押されたら型付けボタンを押す処理
     $('#expression-input').keypress(function(event) {
+
         var enter = 13;
         var backslash = '\\'.charCodeAt(0);
         var yen = '¥'.charCodeAt(0);
 
-        var code = event.keyCode;
+        var code = event.charCode;
+        console.log('pressed: ' + code);
         if (code == enter) {
             $('#type-button').click();
         } else if (code == backslash || code == yen) {
@@ -214,7 +378,12 @@ jQuery(function($) {
     var samplePrograms = {
         'fst': 'λx.y.x',
         'snd': 'λx.y.y',
-        'List Construction': '1::2::3::4::nil'
+        'List Construction': '1::2::3::4::nil',
+        'Arithmetic 1': '1+2*3-4',
+        'Arithmetic 2': '(1-(-2))/3',
+        'Logic 1': 'not (true equiv false)',
+        'Logic 2': 'false or true and false',
+        'Comparison': '1<2 and 3!=4'
     }
     $('#sample-selectpicker').on('change', function() {
         var key = $(this).find("option:selected").val();
@@ -246,7 +415,11 @@ jQuery(function($) {
             success: function(json, textStatus, xhr) {
                 if (json.parsed) {
                     drawExpr(json.expr);
+                    drawPrincipalType(json.type);
                     drawAst(json.ast);
+                    drawProofDiagram(json.proof, json.unification);
+                    // test
+                    // drawEquation($('#inference-svg').get(0), json.unification[0], 300, 300);
                     $('#success-panel-group').show()
                     $('#error-panel-group').hide();
                 } else {

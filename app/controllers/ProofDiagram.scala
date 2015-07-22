@@ -1,13 +1,19 @@
 package proofdiagram
 
+import scala.collection.immutable.ListMap
 import scala.collection.mutable
-
 import fltype._
 import unification._
 
+case class TypeVarGenerator(varCount: Int) {
+  def next: (TypeVar, TypeVarGenerator) =
+    (TypeVar("τ", varCount+1), TypeVarGenerator(varCount+1))
+}
+
 case class ProofDiagram(expr: ast.Ast, flType: FLType,
-                        context: Map[ast.Var, FLType],
+                        context: ListMap[ast.Var, FLType],
                         varGenerator: TypeVarGenerator) {
+  import visual.Richtext
   private val Eq = TypeEquation
   val (parents: Seq[ProofDiagram],
        nextVarGenerator: TypeVarGenerator,
@@ -83,12 +89,43 @@ case class ProofDiagram(expr: ast.Ast, flType: FLType,
        Some(Eq(flType, resultType)))
     }
   }
-  def isFreeVariableError = unificator.isEmpty
+  def isFreeVariableError: Boolean = unificator.isEmpty
   def allUnificators: Seq[TypeEquation] =
     unificator.toSeq ++ parents.flatMap(_.allUnificators)
+  def unification: Unification =
+    new Unification(mutable.ListBuffer(allUnificators: _*))
+
+  def typingRuleName: String = expr match {
+    case ast.Const(_,_) => "con"
+    case ast.Var(_) => "var"
+    case ast.Cons(_,_) => "list"
+    case ast.Nil => "nil"
+    case ast.If(_,_,_) => "if"
+    case ast.Abs(_,_) => "abs"
+    case ast.App(_,_) => "app"
+    case ast.Let(_,_,_) => "let"
+    case ast.Case(_,_,_,_,_) => "case"
+  }
+
+  def toVisual: visual.ProofDiagram = {
+    val visualContext =
+      if (context.isEmpty)
+        Richtext("")
+      else
+        context.map{ case (v, t) =>
+          v.toVisualExpr + Richtext(" ↦ ") + t.toVisual
+        }.reduceLeft{
+          _ + Richtext(", ") + _
+        }
+    val visualExpr = visualContext + Richtext(" ⊢ ") +
+      expr.toVisualExpr + Richtext(" : ") +
+      flType.toVisual
+    val visualRule = Richtext("(" + typingRuleName + ")", visual.Middle)
+    visual.ProofDiagram(visualExpr, visualRule, parents.map(_.toVisual))
+  }
 }
 
 object ProofDiagram {
   def make(expr: ast.Ast) =
-    ProofDiagram(expr, TypeVar("τ"), Map(), TypeVarGenerator(0))
+    ProofDiagram(expr, TypeVar("τ"), ListMap(), TypeVarGenerator(0))
 }

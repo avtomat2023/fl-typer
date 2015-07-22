@@ -22,10 +22,15 @@
       <input id="expression-input" type="text" class="form-control" autofocus>
       <button id="type-button" class="btn btn-primary">Type It!</button>
       <select id="sample-selectpicker" class="selectpicker">
-        <option>-- Sample Programs --</option>
+        <option disabled="disabled">-- Sample Programs --</option>
         <option>fst</option>
         <option>snd</option>
         <option>List Construction</option>
+        <option>Arithmetic 1</option>
+        <option>Arithmetic 2</option>
+        <option>Logic 1</option>
+        <option>Logic 2</option>
+        <option>Comparison</option>
       </select>
     </div>
     <p>Backslashes and yen signs are treated as lambdas.</p>
@@ -61,6 +66,7 @@
             Principal Type
           </h4>
         </div>
+        <div id="type-panel"></div>
       </div>
 
       <div class="panel panel-default">

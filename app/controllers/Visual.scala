@@ -2,26 +2,34 @@ package visual
 
 import play.api.libs.json._
 
-sealed trait TextStyle
-case object Upright extends TextStyle
-case object Italic extends TextStyle
-case object Subscript extends TextStyle
+sealed trait TextStyle {
+  def toJsString: JsString
+}
+case object Upright extends TextStyle {
+  def toJsString = JsString("upright")
+}
+case object Italic extends TextStyle {
+  def toJsString = JsString("italic")
+}
+case object Middle extends TextStyle {
+  def toJsString = JsString("middle")
+}
+case object Subscript extends TextStyle {
+  def toJsString = JsString("subscript")
+}
 
 case class RichtextFragment(text: String, style: TextStyle)
 
 case class Richtext(fragments: Vector[RichtextFragment]) {
-  def toJsObject: JsObject = JsObject(Seq(
-    "kind" -> JsString("richtext"),
-    "contents" -> JsArray(fragments.map{ case RichtextFragment(text, style) =>
+  def toJSON: JsArray =
+    JsArray(fragments.map{ case RichtextFragment(text, style) =>
       JsObject(Seq(
         "text" -> JsString(text),
-        "italic" -> JsBoolean(style == Italic),
-        "subscript" -> JsBoolean(style == Subscript)
+        "style" -> style.toJsString
       ))
     })
-  ))
-
   def +(other: Richtext): Richtext = Richtext(this.fragments ++ other.fragments)
+  def mkString: String = fragments.map(_.text).mkString
 }
 
 object Richtext {
@@ -30,15 +38,10 @@ object Richtext {
 }
 
 case class Ast(node: Richtext, children: Ast*) {
-  def toJsObject: JsObject =
-    if (children.isEmpty)
-      node.toJsObject
-    else
-      JsObject(Seq(
-        "kind" -> JsString("tree"),
-        "node" -> node.toJsObject,
-        "children" -> JsArray(children.map(_.toJsObject))
-      ))
+  def toJSON: JsObject = JsObject(Seq(
+    "node" -> node.toJSON,
+    "children" -> JsArray(children.map(_.toJSON))
+  ))
 }
 
 object Ast {
@@ -46,12 +49,23 @@ object Ast {
     Ast(Richtext(node), children: _*)
 }
 
-case class ProofDiagram(node: Richtext, parents: Seq[ProofDiagram],
-                        unificators: Seq[Richtext]) {
-  def toJsObject: JsObject = JsObject(Seq(
-    "kind" -> JsString("diagram"),
-    "node" -> node.toJsObject,
-    "parents" -> JsArray(parents.map(_.toJsObject)),
-    "unificators" -> JsArray(unificators.map(_.toJsObject))
+case class ProofDiagram(typedExpr: Richtext, rule: Richtext,
+                        parents: Seq[ProofDiagram]) {
+  def toJSON: JsObject = JsObject(Seq(
+    "typedExpr" -> typedExpr.toJSON,
+    "rule" -> rule.toJSON,
+    "parents" -> JsArray(parents.map(_.toJSON))
   ))
+}
+
+case class Equation(lhs: Richtext, rhs: Richtext) {
+  def toJSON: JsObject = JsObject(Seq(
+    "lhs" -> lhs.toJSON,
+    "eq" -> Richtext("=").toJSON,
+    "rhs" -> rhs.toJSON
+  ))
+}
+
+case class Equations(eqs: Seq[Equation]) {
+  def toJSON: JsArray = JsArray(eqs.map(_.toJSON))
 }

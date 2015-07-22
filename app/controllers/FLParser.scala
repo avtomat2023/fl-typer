@@ -7,10 +7,10 @@ import fltype._
 
 object FLParser extends RegexParsers {
   // 入力文字列全体を一つの式だと思ってパース
-  def parse(input: String) = parseAll(expr, input)
+  def parse(input: String): ParseResult[Ast] = parseAll(expr, input)
   def expr: Parser[Ast] = consExpr
 
-  def consExpr: Parser[Ast] = rep1sep(orExpr, "::") ^^ {
+  def consExpr: Parser[Ast] = rep1sep(equivExpr, "::") ^^ {
     _.reduceRight(Cons(_,_))
   }
 
@@ -56,13 +56,17 @@ object FLParser extends RegexParsers {
   def operator(parser: Parser[String], op: Const): Parser[Const] =
     parser ^^ { _ => op }
 
+  def equivExpr: Parser[Ast] =
+    leftBinOpExpr(operator(word("equiv"), Const.equiv), orExpr)
   def orExpr: Parser[Ast] =
-    leftBinOpExpr(operator(word("or"), Const.or), andExpr)
+    leftBinOpExpr(operator(word("or"), Const.or), xorExpr)
+  def xorExpr: Parser[Ast] =
+    leftBinOpExpr(operator(word("xor"), Const.xor), andExpr)
   def andExpr: Parser[Ast] =
     leftBinOpExpr(operator(word("and"), Const.and), comparisonExpr)
   def comparisonExpr: Parser[Ast] = {
     val op = operator("<=", Const.le) | operator("<", Const.lt) |
-             operator("=", Const.intEq) |
+             operator("=", Const.intEq) | operator("!=", Const.intNe) |
              operator(">=", Const.ge) | operator(">", Const.gt)
     leftBinOpExpr(op, addsubExpr)
   }
@@ -93,8 +97,9 @@ object FLParser extends RegexParsers {
   def intConst: Parser[Const] = """[0-9]+""".r ^^ { Const(_, FLInt) }
   def boolConst: Parser[Const] = word("true", "false") ^^ { Const(_, FLBool) }
 
-  val reservedWords = Set("true", "false", "and", "or", "not", "nil",
-                          "if", "then", "else", "let", "in", "case", "of")
+  val reservedWords = Set("true", "false", "not", "and", "xor", "or", "equiv",
+                          "nil", "if", "then", "else",
+                          "let", "in", "case", "of")
   def variable: Parser[Var] = {
     def err(found: String) =
       "`" + found + "' is a reserved word, not available for variable name"
