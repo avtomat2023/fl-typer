@@ -3,7 +3,6 @@ package proofdiagram
 import scala.collection.mutable
 
 import fltype._
-import visual._
 import unification._
 
 case class ProofDiagram(expr: ast.Ast, flType: FLType,

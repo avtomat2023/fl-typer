@@ -1,7 +1,6 @@
 import proofdiagram._
 import unification._
 import fltype._
-import visual._
 import ast._
 
 import org.scalatest.FunSuite

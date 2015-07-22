@@ -1,10 +1,10 @@
 package unification
 
 import fltype._
-import visual._
 
 case class TypeEquation(lhs: FLType, rhs: FLType) {
-  def visual: Richtext = lhs.visual + Richtext(" = ") + rhs.visual
+  def toVisual: visual.Richtext =
+    lhs.toVisual + visual.Richtext(" = ") + rhs.toVisual
 }
 
 sealed trait Result

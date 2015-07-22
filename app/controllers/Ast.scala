@@ -3,12 +3,12 @@ package ast
 import play.api.libs.json.JsObject
 
 import fltype._
-import visual._
 
 sealed trait Ast {
-  def toVisualAst: Element
-  def toVisualExpr: Richtext
-  def parenedVisualExpr = Richtext("(") + toVisualExpr + Richtext(")")
+  def toVisualAst: visual.Ast
+  def toVisualExpr: visual.Richtext
+  def parenedVisualExpr =
+    visual.Richtext("(") + toVisualExpr + visual.Richtext(")")
   // 式を具象構文で書いたとき、右端がAbsかIfかLetかCaseの終わりならtrueを返す
   def isRightOpen: Boolean
 }
@@ -16,24 +16,24 @@ sealed trait Ast {
 object Ast {
   // utility function
   def visualAst(node: String, children: Ast*) =
-    Tree(node, children.map(_.toVisualAst): _*)
+    visual.Ast(node, children.map(_.toVisualAst): _*)
 }
 
 case class Const(value: String, fltype: FLType) extends Ast {
-  def toVisualAst = Richtext(value)
-  def toVisualExpr = Richtext(value)
+  def toVisualAst = visual.Ast(value)
+  def toVisualExpr = visual.Richtext(value)
   def isRightOpen = false
 }
 
 case class Var(name: String) extends Ast {
-  def toVisualAst = Richtext(name, Italic)
-  def toVisualExpr = Richtext(name, Italic)
+  def toVisualAst = visual.Ast(visual.Richtext(name, visual.Italic))
+  def toVisualExpr = visual.Richtext(name, visual.Italic)
   def isRightOpen = false
 }
 
 case object Nil extends Ast {
-  def toVisualAst = Richtext("nil")
-  def toVisualExpr = Richtext("nil")
+  def toVisualAst = visual.Ast("nil")
+  def toVisualExpr = visual.Richtext("nil")
   def isRightOpen = false
 }
 
@@ -46,7 +46,7 @@ case class Cons(car: Ast, cdr: Ast) extends Ast {
         case Cons(_,_) => car.parenedVisualExpr
         case _ => car.toVisualExpr
       }
-    carExpr + Richtext(" :: ") + cdr.toVisualExpr
+    carExpr + visual.Richtext(" :: ") + cdr.toVisualExpr
   }
   def isRightOpen = cdr.isRightOpen
 }
@@ -54,7 +54,8 @@ case class Cons(car: Ast, cdr: Ast) extends Ast {
 case class Abs(variable: Var, body: Ast) extends Ast {
   def toVisualAst = Ast.visualAst("λ", variable, body)
   def toVisualExpr =
-    Richtext("λ") + variable.toVisualExpr + Richtext(". ") + body.toVisualExpr
+    visual.Richtext("λ") + variable.toVisualExpr +
+    visual.Richtext(". ") + body.toVisualExpr
   def isRightOpen = true
 }
 
@@ -72,7 +73,7 @@ case class App(func: Ast, arg: Ast) extends Ast {
       case App(_,_) => arg.parenedVisualExpr
       case _ => arg.toVisualExpr
     }
-    funcExpr + Richtext(" ") + argExpr
+    funcExpr + visual.Richtext(" ") + argExpr
   }
   def isRightOpen = arg.isRightOpen
 }
@@ -80,18 +81,18 @@ case class App(func: Ast, arg: Ast) extends Ast {
 case class If(cond: Ast, thenExpr: Ast, elseExpr: Ast) extends Ast {
   def toVisualAst = Ast.visualAst("if", cond, thenExpr, elseExpr)
   def toVisualExpr =
-    Richtext("if ") + cond.toVisualExpr +
-      Richtext(" then ") + thenExpr.toVisualExpr +
-      Richtext(" else ") + elseExpr.toVisualExpr
+    visual.Richtext("if ") + cond.toVisualExpr +
+      visual.Richtext(" then ") + thenExpr.toVisualExpr +
+      visual.Richtext(" else ") + elseExpr.toVisualExpr
   def isRightOpen = true
 }
 
 case class Let(variable: Var, binding: Ast, body: Ast) extends Ast {
   def toVisualAst = Ast.visualAst("let", variable, binding, body)
   def toVisualExpr =
-    Richtext("let ") + variable.toVisualExpr +
-      Richtext(" = ") + binding.toVisualExpr +
-      Richtext(" in ") + body.toVisualExpr
+    visual.Richtext("let ") + variable.toVisualExpr +
+      visual.Richtext(" = ") + binding.toVisualExpr +
+      visual.Richtext(" in ") + body.toVisualExpr
   def isRightOpen = true
 }
 
@@ -99,15 +100,16 @@ case class Case(selector: Ast, nilExpr: Ast,
                 carPat: Var, cdrPat: Var, consExpr: Ast) extends Ast {
   def toVisualAst = {
     val nilAlt = Ast.visualAst("nil", nilExpr)
-    val consPat = carPat.toVisualExpr + Richtext("::") + cdrPat.toVisualExpr
-    val consAlt = Tree(consPat, consExpr.toVisualAst)
-    Tree("case", selector.toVisualAst, nilAlt, consAlt)
+    val consPat = carPat.toVisualExpr + visual.Richtext("::") + cdrPat.toVisualExpr
+    val consAlt = visual.Ast(consPat, consExpr.toVisualAst)
+    visual.Ast("case", selector.toVisualAst, nilAlt, consAlt)
   }
   def toVisualExpr =
-    Richtext("case ") + selector.toVisualExpr +
-      Richtext(" of nil → ") + nilExpr.toVisualExpr + Richtext(" | ") +
-      carPat.toVisualExpr + Richtext("::") + cdrPat.toVisualExpr +
-      Richtext(" → ") + consExpr.toVisualExpr
+    visual.Richtext("case ") + selector.toVisualExpr +
+      visual.Richtext(" of nil → ") + nilExpr.toVisualExpr +
+      visual.Richtext(" | ") +
+      carPat.toVisualExpr + visual.Richtext("::") + cdrPat.toVisualExpr +
+      visual.Richtext(" → ") + consExpr.toVisualExpr
   def isRightOpen = true
 }
 
