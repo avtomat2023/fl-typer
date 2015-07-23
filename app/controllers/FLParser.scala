@@ -82,10 +82,7 @@ object FLParser extends RegexParsers {
   def prefixExpr: Parser[Ast] = {
     val op = operator("+", Const.uplus) | operator("-", Const.uminus) |
              operator(word("not"), Const.not)
-    opt(op) ~ appExpr ^^ {
-      case Some(op)~expr => App(op, expr)
-      case None~expr => expr
-    }
+    rep(op) ~ appExpr ^^ { case ops~expr => ops.foldRight(expr)(App(_,_)) }
   }
 
   def appExpr: Parser[Ast] = rep1(parenExpr) ^^ { _.reduceLeft(App(_,_)) }
