@@ -61,7 +61,7 @@ case class ProofDiagram(typedExpr: Richtext, rule: Richtext,
 case class Equation(lhs: Richtext, rhs: Richtext) {
   def toJSON: JsObject = JsObject(Seq(
     "lhs" -> lhs.toJSON,
-    "eq" -> Richtext("=").toJSON,
+    "eq" -> Richtext(" = ").toJSON,
     "rhs" -> rhs.toJSON
   ))
 }
