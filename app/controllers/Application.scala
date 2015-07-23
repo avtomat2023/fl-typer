@@ -6,6 +6,7 @@ import play.api.libs.json._
 
 import parsing.FLParser
 import proofdiagram.ProofDiagram
+import visual.Richtext
 
 /** Controller class for Play Framework. */
 class Application extends Controller {
@@ -25,8 +26,15 @@ class Application extends Controller {
     * it also contains the following fields when the value of "parsed" is true:
     *   - "expr": Object (see [[visual.Richtext]])<br>
     *     represents the requested expression.
+    *   - "type": Object (see [[visual.Richtext]])<br>
+    *     represents the inferred principal type or error message.
     *   - "ast": Object (see [[visual.Ast]])<br>
     *     represents the abstract syntax tree of the requested expression.
+    *   - "proof": Object (see [[visual.ProofDiagram]])<br>
+    *     represents the proof diagram.
+    *   - "unification": Array (see [[visual.Equations]])<br>
+    *     represents all unification equations.
+    * Representations of proof diagram and unification will probably be changed.
     *
     * Otherwise, it also contains the following field:
     *   - "error": String<br>
@@ -35,15 +43,21 @@ class Application extends Controller {
   def typing(expr: String) = Action { implicit request =>
     FLParser.parse(expr) match {
       case FLParser.Success(ast, _) => {
-        val diag = ProofDiagram.make(ast)
-        val unification = diag.unification
+        val diagram = ProofDiagram.make(ast)
+        val unification = diagram.unification
         val unificationVisual = unification.toVisual
+        val typeVisual =
+          if (diagram.isFreeVariableError)
+            Richtext("ill-typed: free variable reference")
+          else
+            unification.solve().toVisual
+
         Ok(JsObject(Seq(
           "parsed" -> JsBoolean(true),
           "expr" -> ast.toVisualExpr.toJSON,
-          "type" -> unification.solve().toVisual.toJSON,
+          "type" -> typeVisual.toJSON,
           "ast" -> ast.toVisualAst.toJSON,
-          "proof" -> diag.toVisual.toJSON,
+          "proof" -> diagram.toVisual.toJSON,
           "unification" -> unificationVisual.toJSON
         )))
       }

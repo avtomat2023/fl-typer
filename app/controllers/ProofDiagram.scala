@@ -89,7 +89,8 @@ case class ProofDiagram(expr: ast.Ast, flType: FLType,
        Some(Eq(flType, resultType)))
     }
   }
-  def isFreeVariableError: Boolean = unificator.isEmpty
+  def isFreeVariableError: Boolean =
+    parents.exists(_.isFreeVariableError) || unificator.isEmpty
   def allUnificators: Seq[TypeEquation] =
     unificator.toSeq ++ parents.flatMap(_.allUnificators)
   def unification: Unification =
