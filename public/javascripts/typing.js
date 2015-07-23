@@ -356,16 +356,14 @@ jQuery(function($) {
     // バックスラッシュと円マークをラムダに変換する処理
     // および、Enterキーが押されたら型付けボタンを押す処理
     $('#expression-input').keypress(function(event) {
-
-        var enter = 13;
-        var backslash = '\\'.charCodeAt(0);
-        var yen = '¥'.charCodeAt(0);
-
-        var code = event.charCode;
-        console.log('pressed: ' + code);
-        if (code == enter) {
+        var enterKey = 13;
+        var backslashChar = '\\'.charCodeAt(0);
+        var yenChar = '¥'.charCodeAt(0);
+        var keyCode = event.keyCode
+        var charCode = event.charCode;
+        if (keyCode == enterKey) {
             $('#type-button').click();
-        } else if (code == backslash || code == yen) {
+        } else if (charCode == backslashChar || charCode == yenChar) {
             event.preventDefault();
             var caret = $(this).caret();
             var s = $(this).val();
